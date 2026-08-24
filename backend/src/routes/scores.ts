@@ -3,6 +3,7 @@
 // CHQ: Claude AI (Haiku) created and modified with Gemini AI
 
 import { Router } from "express";
+import { pool } from "../db.ts";
 // import { AuthenticatedRequest, verifyToken } from "../middleware/auth";
 import { AuthenticatedRequest, verifyToken } from "../middleware/auth.js";
 // import { AuthenticatedRequest, verifyToken } from "../middleware/auth.ts";
@@ -18,10 +19,17 @@ const scores: Map<
 const users: Map<string, { email: string; name: string }> = new Map();
 
 // Save a score (requires authentication)
-router.post("/scores", verifyToken, (req: AuthenticatedRequest, res) => {
+router.post("/scores", async (req: AuthenticatedRequest, res) => {
+  // router.post("/scores", verifyToken, async (req: AuthenticatedRequest, res) => {
   try {
-    const { timeSeconds } = req.body;
-    const userId = req.user!.userId;
+    const { userId, timeSeconds } = req.body;
+    // const userId = req.user!.userId;
+
+    await pool.query(
+      "INSERT INTO scores (user_id, time_seconds, created_at) VALUES (?, ?, NOW())",
+      [userId, timeSeconds],
+    );
+    res.json({ message: "Score saved" });
 
     if (!timeSeconds || timeSeconds <= 0) {
       return res.status(400).json({ error: "Invalid time" });
