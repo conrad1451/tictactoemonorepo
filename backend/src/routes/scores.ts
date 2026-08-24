@@ -3,29 +3,16 @@
 // CHQ: Claude AI (Haiku) created and modified with Gemini AI
 
 import { Router } from "express";
-// import { pool } from "../db.ts";
 import { pool } from "../db.js";
-// import { AuthenticatedRequest, verifyToken } from "../middleware/auth";
 import { AuthenticatedRequest, verifyToken } from "../middleware/auth.js";
-// import { AuthenticatedRequest, verifyToken } from "../middleware/auth.ts";
 
-// CHQ: Gemini AI: Interface for match updates
 interface GameResultRequestBody {
   result: "win" | "loss" | "draw";
   timeSeconds: number;
 }
 
-// CHQ: Gemini AI: Explicit type annotation
 const router: Router = Router();
 
-// In-memory storage (replace with database in production)
-const scores: Map<
-  string,
-  Array<{ timeSeconds: number; createdAt: Date }>
-> = new Map();
-const users: Map<string, { email: string; name: string }> = new Map();
-
-// CHQ: Gemini AI edited to query database
 // Save a score (requires authentication)
 router.post("/scores", verifyToken, async (req: AuthenticatedRequest, res) => {
   try {
@@ -36,11 +23,21 @@ router.post("/scores", verifyToken, async (req: AuthenticatedRequest, res) => {
       return res.status(400).json({ error: "Missing required match details." });
     }
 
-    // Insert game result into database using pool
+    // Ensure a users row exists before inserting into scores, since
+    // scores.user_id has a FOREIGN KEY constraint referencing users.id.
+    // Descope-authenticated users are never separately written to the
+    // users table anywhere else, so without this the insert below fails
+    // with ER_NO_REFERENCED_ROW_2 on every single request.
+    await pool.query(
+      "INSERT IGNORE INTO users (id, created_at) VALUES (?, NOW())",
+      [userId],
+    );
+
     await pool.query(
       "INSERT INTO scores (user_id, result, time_seconds, created_at) VALUES (?, ?, ?, NOW())",
       [userId, result, timeSeconds],
     );
+
     return res.status(200).json({
       message: "Game result recorded successfully",
       data: { userId, result, timeSeconds },
@@ -55,10 +52,7 @@ router.post("/scores", verifyToken, async (req: AuthenticatedRequest, res) => {
 router.get("/scores/user/:userId", async (req: AuthenticatedRequest, res) => {
   try {
     const { userId } = req.params;
-    // const userScores = scores.get(userId) || [];
-    // const user = users.get(userId);
 
-    // Query user metrics directly from database
     const [rows]: any = await pool.query(
       `SELECT 
         COUNT(*) as totalGames,
@@ -86,55 +80,26 @@ router.get("/scores/user/:userId", async (req: AuthenticatedRequest, res) => {
       totalGames: stats.totalGames,
       averageTime: Math.round(Number(stats.averageTime) * 100) / 100,
     });
-
-    // if (userScores.length === 0) {
-    //   return res.json({
-    //     userId,
-    //     username: user?.name || "Anonymous",
-    //     bestTime: null,
-    //     totalGames: 0,
-    //     averageTime: null,
-    //   });
-    // }
-
-    // const bestTime = userScores.length
-    //   ? Math.min(...userScores.map((s) => s.timeSeconds))
-    //   : 0;
-    // const averageTime = userScores.length
-    //   ? userScores.reduce((sum, s) => sum + s.timeSeconds, 0) /
-    //     userScores.length
-    //   : 0;
-    // res.json({
-    //   userId,
-    //   username: user?.name || "Anonymous",
-    //   bestTime,
-    //   totalGames: userScores.length,
-    //   averageTime: Math.round(averageTime * 100) / 100,
-    // });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch scores" });
   }
 });
 
 // Get leaderboard
-router.get("/leaderboard", (req, res) => {
+router.get("/leaderboard", async (req, res) => {
   try {
-    const leaderboard = Array.from(scores.entries())
-      .filter(([_, userScores]) => userScores.length > 0) // Guard against empty user arrays
-      .map(([userId, userScores]) => {
-        const bestTime = Math.min(...userScores.map((s) => s.timeSeconds));
-        const user = users.get(userId);
-        return {
-          userId,
-          username: user?.name || "Anonymous",
-          bestTime,
-          totalGames: userScores.length,
-        };
-      })
-      .sort((a, b) => a.bestTime - b.bestTime)
-      .slice(0, 10);
+    const [rows]: any = await pool.query(
+      `SELECT
+        user_id as userId,
+        MIN(time_seconds) as bestTime,
+        COUNT(*) as totalGames
+       FROM scores
+       GROUP BY user_id
+       ORDER BY bestTime ASC
+       LIMIT 10`,
+    );
 
-    res.json(leaderboard);
+    res.json(rows);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch leaderboard" });
   }
