@@ -3,7 +3,8 @@
 // CHQ: Claude AI (Haiku) created and modified with Gemini AI
 
 import { Router } from "express";
-import { pool } from "../db.ts";
+// import { pool } from "../db.ts";
+import { pool } from "../db.js";
 // import { AuthenticatedRequest, verifyToken } from "../middleware/auth";
 import { AuthenticatedRequest, verifyToken } from "../middleware/auth.js";
 // import { AuthenticatedRequest, verifyToken } from "../middleware/auth.ts";
