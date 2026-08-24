@@ -32,10 +32,18 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Auto-save score when player wins and is authenticated
+  // Auto-save score/match result when game finishes and user is authenticated
   useEffect(() => {
-    if (game.winner === "X" && authUser && !scoreSaved) {
-      saveScore(game.elapsedTime)
+    // Check if the game is over (winner is 'X', 'O', or 'draw')
+    const isGameOver = !!game.winner;
+
+    if (isGameOver && authUser && !scoreSaved) {
+      // Determine the match result string expected by backend
+      const result: "win" | "loss" | "draw" =
+        game.winner === "X" ? "win" : game.winner === "O" ? "loss" : "draw";
+
+      // Pass both result and elapsedTime to API service
+      saveScore(result, game.elapsedTime)
         .then(() => {
           setScoreSaved(true);
         })
@@ -51,10 +59,14 @@ const App: React.FC = () => {
     setAuthToken(user.sessionJwt);
     setScoreSaved(true);
 
-    // Save the score
-    saveScore(game.elapsedTime).catch((err) => {
-      console.error("Failed to save score:", err);
-    });
+    if (game.winner) {
+      const result: "win" | "loss" | "draw" =
+        game.winner === "X" ? "win" : game.winner === "O" ? "loss" : "draw";
+
+      saveScore(result, game.elapsedTime).catch((err) => {
+        console.error("Failed to save score:", err);
+      });
+    }
   };
 
   const handleLogout = () => {
