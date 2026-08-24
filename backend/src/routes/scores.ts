@@ -1,3 +1,7 @@
+// backend/src/routes/scores.ts
+
+// CHQ: Claude AI (Haiku) created and modified with Gemini AI
+
 import { Router } from "express";
 import { AuthenticatedRequest, verifyToken } from "../middleware/auth";
 

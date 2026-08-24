@@ -1,3 +1,7 @@
+// backend/src/routes/auth.ts
+
+// CHQ: Claude AI (Haiku) generated file
+
 import { Router } from "express";
 
 const router = Router();

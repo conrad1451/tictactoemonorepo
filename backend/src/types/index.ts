@@ -1,3 +1,7 @@
+// backend/src/types/index.ts
+
+// CHQ: Claude AI (Haiku) generated file
+
 export interface Score {
   id: string;
   userId: string;

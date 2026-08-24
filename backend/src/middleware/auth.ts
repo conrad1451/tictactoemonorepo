@@ -1,3 +1,7 @@
+// backend/src/middleware/auth.ts
+
+// CHQ: Claude AI (Haiku) generated file
+
 import { Request, Response, NextFunction } from "express";
 
 export interface AuthenticatedRequest extends Request {

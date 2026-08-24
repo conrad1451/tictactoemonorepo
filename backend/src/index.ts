@@ -1,3 +1,7 @@
+// backend/src/index.ts
+
+// CHQ: Claude AI (Haiku) generated file
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
