@@ -23,14 +23,16 @@ router.post("/scores", verifyToken, async (req: AuthenticatedRequest, res) => {
       return res.status(400).json({ error: "Missing required match details." });
     }
 
-    // Ensure a users row exists before inserting into scores, since
-    // scores.user_id has a FOREIGN KEY constraint referencing users.id.
-    // Descope-authenticated users are never separately written to the
-    // users table anywhere else, so without this the insert below fails
+    // Ensure a users row exists (and stays current) before inserting into
+    // scores, since scores.user_id has a FOREIGN KEY constraint referencing
+    // users.id. Descope-authenticated users are never separately written to
+    // the users table anywhere else, so without this the insert below fails
     // with ER_NO_REFERENCED_ROW_2 on every single request.
     await pool.query(
-      "INSERT IGNORE INTO users (id, created_at) VALUES (?, NOW())",
-      [userId],
+      `INSERT INTO users (id, name, email, created_at)
+       VALUES (?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email)`,
+      [userId, req.user?.name ?? null, req.user?.email ?? null],
     );
 
     await pool.query(
@@ -90,11 +92,13 @@ router.get("/leaderboard", async (req, res) => {
   try {
     const [rows]: any = await pool.query(
       `SELECT
-        user_id as userId,
-        MIN(time_seconds) as bestTime,
+        s.user_id as userId,
+        COALESCE(u.name, u.email, 'Anonymous') as username,
+        MIN(s.time_seconds) as bestTime,
         COUNT(*) as totalGames
-       FROM scores
-       GROUP BY user_id
+       FROM scores s
+       LEFT JOIN users u ON u.id = s.user_id
+       GROUP BY s.user_id, u.name, u.email
        ORDER BY bestTime ASC
        LIMIT 10`,
     );
