@@ -1,0 +1,46 @@
+/* frontend/src/styles/GameBoard.css*/
+
+/* CHQ: Claude AI (Haiku) generated file */
+
+.game-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 30px 0;
+  padding: 10px;
+  background: #f9f9f9;
+  border-radius: 10px;
+}
+
+.cell {
+  aspect-ratio: 1;
+  font-size: 48px;
+  font-weight: bold;
+  border: 3px solid #667eea;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #333;
+}
+
+.cell:hover:not(:disabled) {
+  background: #f0f0f0;
+  transform: scale(0.95);
+}
+
+.cell:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.cell:disabled {
+  cursor: not-allowed;
+}
+
+.cell.x {
+  color: #667eea;
+}
+
+.cell.o {
+  color: #764ba2;
+}

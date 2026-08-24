@@ -1,0 +1,44 @@
+/* frontend/src/styles/GameStatus.css*/
+
+/* CHQ: Claude AI (Haiku) generated file */
+
+.game-status {
+  text-align: center;
+}
+
+.status-message {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 15px;
+  min-height: 32px;
+}
+
+.timer {
+  font-size: 32px;
+  font-weight: bold;
+  color: #667eea;
+  margin: 15px 0;
+  font-family: "Courier New", monospace;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.actions .btn {
+  margin: 0;
+}
+
+.score-saved {
+  color: #4caf50;
+  font-weight: bold;
+  font-size: 18px;
+  padding: 10px;
+  background: #e8f5e9;
+  border-radius: 8px;
+  margin-top: 10px;
+}
