@@ -96,7 +96,14 @@ const App: React.FC = () => {
               Sign Out
             </button>
           </div>
-        ) : null}
+        ) : (
+          <button
+            className="btn btn-primary btn-small"
+            onClick={() => setShowAuthModal(true)}
+          >
+            Sign In
+          </button>
+        )}
       </header>
 
       <main className="app-main">

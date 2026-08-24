@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Descope, getSessionToken } from "@descope/react-sdk";
 import { AuthUser } from "../types";
 import "../styles/AuthModal.css";
 
@@ -9,39 +10,68 @@ interface AuthModalProps {
   elapsedTime: number;
 }
 
+// Shape of the CustomEvent Descope's <Descope /> component fires on
+// onSuccess. `sessionJwt` is included on the event in addition to `user`,
+// but we fall back to getSessionToken() in case a given flow/version omits it.
+interface DescopeSuccessDetail {
+  user?: {
+    userId?: string;
+    sub?: string;
+    email?: string;
+    name?: string;
+    loginIds?: string[];
+  };
+  sessionJwt?: string;
+}
+
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   onAuthSuccess,
   elapsedTime,
 }) => {
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleDescopeLogin = async () => {
-    setLoading(true);
+  if (!isOpen) return null;
+
+  const handleDescopeSuccess = (e: CustomEvent<DescopeSuccessDetail>) => {
     setError(null);
 
-    try {
-      // This integrates with Descope SDK
-      // You would use @descope/react-sdk for the actual implementation
-      const mockUser: AuthUser = {
-        userId: "user_" + Math.random().toString(36).substr(2, 9),
-        email: "player@example.com",
-        name: "Player",
-        sessionJwt: "mock_jwt_token",
-      };
+    const detail = e.detail ?? {};
+    const descopeUser = detail.user ?? {};
+    const sessionJwt = detail.sessionJwt ?? getSessionToken();
 
-      onAuthSuccess(mockUser);
-      onClose();
-    } catch (err) {
+    if (!sessionJwt) {
       setError("Authentication failed. Please try again.");
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    const authUser: AuthUser = {
+      userId:
+        descopeUser.userId ??
+        descopeUser.sub ??
+        descopeUser.loginIds?.[0] ??
+        "",
+      email: descopeUser.email ?? "",
+      name: descopeUser.name ?? descopeUser.email ?? "Player",
+      sessionJwt,
+    };
+
+    onAuthSuccess(authUser);
+    onClose();
   };
 
-  if (!isOpen) return null;
+  // The Descope component's `onError` prop type is an intersection of the
+  // DOM's `onerror` handler shape and a CustomEvent handler, so we accept
+  // the loose `Event | string` shape and narrow to CustomEvent ourselves.
+  const handleDescopeError: OnErrorEventHandlerNonNull = (event) => {
+    if (event instanceof CustomEvent) {
+      console.error("Descope auth error:", event.detail);
+    } else {
+      console.error("Descope auth error:", event);
+    }
+    setError("Authentication failed. Please try again.");
+  };
 
   return (
     <div className="modal-overlay">
@@ -57,13 +87,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {error && <div className="error-message">{error}</div>}
 
-        <button
-          className="btn btn-primary btn-large"
-          onClick={handleDescopeLogin}
-          disabled={loading}
-        >
-          {loading ? "Signing in..." : "Sign in with Descope"}
-        </button>
+        <Descope
+          flowId="sign-up-or-in"
+          theme="light"
+          onSuccess={handleDescopeSuccess}
+          onError={handleDescopeError}
+        />
 
         <p className="modal-note">
           Your score will be recorded and you can track your progress on the
