@@ -1,29 +1,9 @@
 // backend/src/middleware/auth.ts
 
-// CHQ: Claude AI (Haiku) generated file
+// CHQ: Created by Claude AI (Haiku), edited using Gemini AI and Claude AI (Sonnet)
 
 import { Request, Response, NextFunction } from "express";
-
-interface DescopeClaims {
-  sub?: string;
-  email?: string;
-  name?: string;
-  [key: string]: unknown;
-}
-
-interface DescopeAuthResponse {
-  valid: boolean;
-  claims?: DescopeClaims;
-}
-
-function isAuthResponse(obj: unknown): obj is DescopeAuthResponse {
-  return (
-    typeof obj === "object" &&
-    obj !== null &&
-    "valid" in obj &&
-    typeof (obj as Record<string, unknown>).valid === "boolean"
-  );
-}
+import DescopeClient from "@descope/node-sdk";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -34,7 +14,12 @@ export interface AuthenticatedRequest extends Request {
 }
 
 const DESCOPE_PROJECT_ID = process.env.DESCOPE_PROJECT_ID;
-const DESCOPE_API_URL = "https://api.descope.com";
+
+if (!DESCOPE_PROJECT_ID) {
+  throw new Error("DESCOPE_PROJECT_ID environment variable is not set");
+}
+
+const descopeClient = DescopeClient({ projectId: DESCOPE_PROJECT_ID });
 
 export const verifyToken = async (
   req: AuthenticatedRequest,
@@ -48,30 +33,17 @@ export const verifyToken = async (
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const response = await fetch(`${DESCOPE_API_URL}/verify`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${DESCOPE_PROJECT_ID}`,
-      },
-      body: JSON.stringify({ sessionJwt: token }),
-    });
+    const authInfo = await descopeClient.validateSession(token);
+    const claims = authInfo.token as Record<string, unknown>;
 
-    const data: unknown = await response.json();
+    req.user = {
+      userId: (claims.sub as string) ?? "",
+      email: (claims.email as string) ?? "",
+      name: (claims.name as string) ?? "User",
+    };
 
-    if (isAuthResponse(data) && data.valid) {
-      const claims = data.claims ?? {};
-
-      req.user = {
-        userId: claims.sub || "sadasildj",
-        email: claims.email || "blank@gmail.com",
-        name: claims.name || "User",
-      };
-      next();
-    } else {
-      res.status(401).json({ error: "Invalid token" });
-    }
+    next();
   } catch (error) {
-    res.status(401).json({ error: "Token verification failed" });
+    res.status(401).json({ error: "Invalid or expired token" });
   }
 };
