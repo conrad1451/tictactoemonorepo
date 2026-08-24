@@ -4,7 +4,7 @@
 
 import { Router } from "express";
 
-const router = Router();
+const router: Router = Router();
 
 // Exchange Descope auth code for session
 router.post("/auth/verify", (req, res) => {

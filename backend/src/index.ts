@@ -5,8 +5,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import scoresRouter from "./routes/scores";
-import authRouter from "./routes/auth";
+import scoresRouter from "./routes/scores.js";
+import authRouter from "./routes/auth.js";
 
 dotenv.config();
 
