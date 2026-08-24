@@ -9,6 +9,12 @@ import { pool } from "../db.js";
 import { AuthenticatedRequest, verifyToken } from "../middleware/auth.js";
 // import { AuthenticatedRequest, verifyToken } from "../middleware/auth.ts";
 
+// CHQ: Gemini AI: Interface for match updates
+interface GameResultRequestBody {
+  result: "win" | "loss" | "draw";
+  timeSeconds: number;
+}
+
 // CHQ: Gemini AI: Explicit type annotation
 const router: Router = Router();
 
@@ -19,89 +25,92 @@ const scores: Map<
 > = new Map();
 const users: Map<string, { email: string; name: string }> = new Map();
 
+// CHQ: Gemini AI edited to query database
 // Save a score (requires authentication)
-router.post("/scores", async (req: AuthenticatedRequest, res) => {
-  // router.post("/scores", verifyToken, async (req: AuthenticatedRequest, res) => {
+router.post("/scores", verifyToken, async (req: AuthenticatedRequest, res) => {
   try {
-    const { userId, timeSeconds } = req.body;
-    // const userId = req.user!.userId;
+    const { result, timeSeconds } = req.body as GameResultRequestBody;
+    const userId = req.user?.userId;
 
+    if (!userId || !result || timeSeconds === undefined) {
+      return res.status(400).json({ error: "Missing required match details." });
+    }
+
+    // Insert game result into database using pool
     await pool.query(
-      "INSERT INTO scores (user_id, time_seconds, created_at) VALUES (?, ?, NOW())",
-      [userId, timeSeconds],
+      "INSERT INTO scores (user_id, result, time_seconds, created_at) VALUES (?, ?, ?, NOW())",
+      [userId, result, timeSeconds],
     );
-    res.json({ message: "Score saved" });
-
-    if (!timeSeconds || timeSeconds <= 0) {
-      return res.status(400).json({ error: "Invalid time" });
-    }
-
-    // Store user info
-    if (!users.has(userId)) {
-      users.set(userId, {
-        email: req.user!.email,
-        name: req.user!.name,
-      });
-    }
-
-    // Store score
-    if (!scores.has(userId)) {
-      scores.set(userId, []);
-    }
-
-    const userScores = scores.get(userId)!;
-    userScores.push({
-      timeSeconds,
-      createdAt: new Date(),
-    });
-
-    // Keep only best 100 scores
-    userScores.sort((a, b) => a.timeSeconds - b.timeSeconds);
-    if (userScores.length > 100) {
-      userScores.pop();
-    }
-
-    res.json({
-      message: "Score saved",
-      timeSeconds,
-      rank: userScores.findIndex((s) => s.timeSeconds === timeSeconds) + 1,
+    return res.status(200).json({
+      message: "Game result recorded successfully",
+      data: { userId, result, timeSeconds },
     });
   } catch (error) {
-    res.status(500).json({ error: "Failed to save score" });
+    console.error("Error saving score:", error);
+    return res.status(500).json({ error: "Failed to save game result" });
   }
 });
 
 // Get user stats
-router.get("/scores/user/:userId", (req: AuthenticatedRequest, res) => {
+router.get("/scores/user/:userId", async (req: AuthenticatedRequest, res) => {
   try {
     const { userId } = req.params;
-    const userScores = scores.get(userId) || [];
-    const user = users.get(userId);
+    // const userScores = scores.get(userId) || [];
+    // const user = users.get(userId);
 
-    if (userScores.length === 0) {
+    // Query user metrics directly from database
+    const [rows]: any = await pool.query(
+      `SELECT 
+        COUNT(*) as totalGames,
+        MIN(time_seconds) as bestTime,
+        AVG(time_seconds) as averageTime
+       FROM scores 
+       WHERE user_id = ?`,
+      [userId],
+    );
+
+    const stats = rows[0];
+
+    if (!stats || stats.totalGames === 0) {
       return res.json({
         userId,
-        username: user?.name || "Anonymous",
         bestTime: null,
         totalGames: 0,
         averageTime: null,
       });
     }
 
-    const bestTime = userScores.length
-      ? Math.min(...userScores.map((s) => s.timeSeconds))
-      : 0;
-    const averageTime = userScores.length
-      ? userScores.reduce((sum, s) => sum + s.timeSeconds, 0) /
-        userScores.length
-      : 0;
-    res.json({
+    return res.json({
       userId,
-      username: user?.name || "Anonymous",
-      bestTime,
-      totalGames: userScores.length,
-      averageTime: Math.round(averageTime * 100) / 100,
+      bestTime: stats.bestTime,
+      totalGames: stats.totalGames,
+      averageTime: Math.round(Number(stats.averageTime) * 100) / 100,
     });
+
+    // if (userScores.length === 0) {
+    //   return res.json({
+    //     userId,
+    //     username: user?.name || "Anonymous",
+    //     bestTime: null,
+    //     totalGames: 0,
+    //     averageTime: null,
+    //   });
+    // }
+
+    // const bestTime = userScores.length
+    //   ? Math.min(...userScores.map((s) => s.timeSeconds))
+    //   : 0;
+    // const averageTime = userScores.length
+    //   ? userScores.reduce((sum, s) => sum + s.timeSeconds, 0) /
+    //     userScores.length
+    //   : 0;
+    // res.json({
+    //   userId,
+    //   username: user?.name || "Anonymous",
+    //   bestTime,
+    //   totalGames: userScores.length,
+    //   averageTime: Math.round(averageTime * 100) / 100,
+    // });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch scores" });
   }
