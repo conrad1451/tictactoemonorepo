@@ -4,6 +4,27 @@
 
 import { Request, Response, NextFunction } from "express";
 
+interface DescopeClaims {
+  sub?: string;
+  email?: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
+interface DescopeAuthResponse {
+  valid: boolean;
+  claims?: DescopeClaims;
+}
+
+function isAuthResponse(obj: unknown): obj is DescopeAuthResponse {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "valid" in obj &&
+    typeof (obj as Record<string, unknown>).valid === "boolean"
+  );
+}
+
 export interface AuthenticatedRequest extends Request {
   user?: {
     userId: string;
@@ -27,21 +48,23 @@ export const verifyToken = async (
       return res.status(401).json({ error: "No token provided" });
     }
 
-    const response = await fetch.post(
-      `${DESCOPE_API_URL}/verify`,
-      { sessionJwt: token },
-      {
-        headers: {
-          Authorization: `Bearer ${DESCOPE_PROJECT_ID}`,
-        },
+    const response = await fetch(`${DESCOPE_API_URL}/verify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${DESCOPE_PROJECT_ID}`,
       },
-    );
+      body: JSON.stringify({ sessionJwt: token }),
+    });
 
-    if (response.data.valid) {
-      const claims = response.data.claims;
+    const data: unknown = await response.json();
+
+    if (isAuthResponse(data) && data.valid) {
+      const claims = data.claims ?? {};
+
       req.user = {
-        userId: claims.sub,
-        email: claims.email,
+        userId: claims.sub || "sadasildj",
+        email: claims.email || "blank@gmail.com",
         name: claims.name || "User",
       };
       next();

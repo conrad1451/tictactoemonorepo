@@ -3,9 +3,12 @@
 // CHQ: Claude AI (Haiku) created and modified with Gemini AI
 
 import { Router } from "express";
-import { AuthenticatedRequest, verifyToken } from "../middleware/auth";
+// import { AuthenticatedRequest, verifyToken } from "../middleware/auth";
+import { AuthenticatedRequest, verifyToken } from "../middleware/auth.js";
+// import { AuthenticatedRequest, verifyToken } from "../middleware/auth.ts";
 
-const router = Router();
+// CHQ: Gemini AI: Explicit type annotation
+const router: Router = Router();
 
 // In-memory storage (replace with database in production)
 const scores: Map<
@@ -76,10 +79,13 @@ router.get("/scores/user/:userId", (req: AuthenticatedRequest, res) => {
       });
     }
 
-    const bestTime = Math.min(...userScores.map((s) => s.timeSeconds));
-    const averageTime =
-      userScores.reduce((sum, s) => sum + s.timeSeconds, 0) / userScores.length;
-
+    const bestTime = userScores.length
+      ? Math.min(...userScores.map((s) => s.timeSeconds))
+      : 0;
+    const averageTime = userScores.length
+      ? userScores.reduce((sum, s) => sum + s.timeSeconds, 0) /
+        userScores.length
+      : 0;
     res.json({
       userId,
       username: user?.name || "Anonymous",
@@ -96,6 +102,7 @@ router.get("/scores/user/:userId", (req: AuthenticatedRequest, res) => {
 router.get("/leaderboard", (req, res) => {
   try {
     const leaderboard = Array.from(scores.entries())
+      .filter(([_, userScores]) => userScores.length > 0) // Guard against empty user arrays
       .map(([userId, userScores]) => {
         const bestTime = Math.min(...userScores.map((s) => s.timeSeconds));
         const user = users.get(userId);
