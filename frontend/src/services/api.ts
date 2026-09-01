@@ -74,9 +74,9 @@ export const saveScore = async (
 };
 
 // CHQ: Gemini AI added boardSize to leaderboard 
-export const getLeaderboard = async (boardSize: number = 3) => {
+export const getLeaderboard = async (boardSize: number = 3): Promise<LeaderboardEntry[]> => {
   const response = await fetch(
-    `${API_BASE_URL}/leaderboard?board_size=${boardSize}`
+    `${API_BASE_URL}/api/leaderboard?boardSize=${boardSize}`
   );
   if (!response.ok) {
     throw new Error("Failed to fetch leaderboard");
