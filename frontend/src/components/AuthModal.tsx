@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Descope, getSessionToken } from "@descope/react-sdk";
+import React, { useState, useEffect } from "react";
+import { Descope, getSessionToken, useUser} from "@descope/react-sdk";
 import { AuthUser } from "../types";
 import "../styles/AuthModal.css";
 
