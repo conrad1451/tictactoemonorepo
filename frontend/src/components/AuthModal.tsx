@@ -31,6 +31,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   elapsedTime,
 }) => {
   const [error, setError] = useState<string | null>(null);
+  const { user: sdkUser } = useUser(); // Pull user state directly from Descope context
 
   if (!isOpen) return null;
 
@@ -38,7 +39,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setError(null);
 
     const detail = e.detail ?? {};
-    const descopeUser = detail.user ?? {};
+    const descopeUser = detail.user ?? sdkUser ?? {};
     const sessionJwt = detail.sessionJwt ?? getSessionToken();
 
     if (!sessionJwt) {
@@ -72,6 +73,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
     setError("Authentication failed. Please try again.");
   };
+
+  useEffect(() => {
+  if (isOpen) {
+    setError(null);
+  }
+  }, [isOpen]);
 
   return (
     <div className="modal-overlay">
