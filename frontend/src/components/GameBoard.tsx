@@ -1,7 +1,6 @@
 import React from "react";
 import { useGameLogic } from "../hooks/useGameLogic";
-
-import "../App.css";
+import "../styles/GameBoard.css";
 
 interface GameBoardProps {
   boardSize: number;
@@ -20,7 +19,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({ boardSize, onBackToHome })
     resetGame,
   } = useGameLogic(boardSize, onBackToHome);
 
-  // Format timer into MM:SS
   const formatTime = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
@@ -29,20 +27,20 @@ export const GameBoard: React.FC<GameBoardProps> = ({ boardSize, onBackToHome })
 
   return (
     <div className="game-container">
-      <header className="game-header">
-        <button className="btn-back" onClick={onBackToHome}>
+      <header className="game-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+        <button className="btn btn-secondary btn-small" onClick={onBackToHome}>
           ← Home
         </button>
-        <div className="game-info">
-          <h2>{boardSize} × {boardSize} Match</h2>
+        <div className="game-info" style={{ textAlign: "center" }}>
+          <h3>{boardSize} × {boardSize} Match</h3>
           <span className="timer">Time: {formatTime(timeSeconds)}</span>
         </div>
-        <button className="btn-reset" onClick={resetGame}>
+        <button className="btn btn-secondary btn-small" onClick={resetGame}>
           Restart
         </button>
       </header>
 
-      <div className="status-banner">
+      <div className="status-banner" style={{ textAlign: "center", margin: "15px 0", fontWeight: "bold" }}>
         {winner ? (
           winner === "draw" ? (
             <span className="status-draw">Game ended in a Draw!</span>
@@ -71,7 +69,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ boardSize, onBackToHome })
           return (
             <button
               key={index}
-              className={`cell ${cellValue ? `cell-${cellValue.toLowerCase()}` : ""} ${
+              className={`cell ${cellValue ? cellValue.toLowerCase() : ""} ${
                 isWinningCell ? "winning-cell" : ""
               }`}
               onClick={() => handleCellClick(index)}
