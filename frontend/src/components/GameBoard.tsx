@@ -1,6 +1,8 @@
 import React from "react";
 import { useGameLogic } from "../hooks/useGameLogic";
 
+import "../App.css";
+
 interface GameBoardProps {
   boardSize: number;
   onBackToHome: () => void;
