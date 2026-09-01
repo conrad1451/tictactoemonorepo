@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from "react";
 import { getLeaderboard } from "./services/api";
 import { GameBoard } from "./components/GameBoard";
+import "./App.css";
 
 import { LeaderboardEntry } from "./types";
 
