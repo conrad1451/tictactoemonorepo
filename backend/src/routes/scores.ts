@@ -1,14 +1,16 @@
 // backend/src/routes/scores.ts
 
-// CHQ: Claude AI (Haiku) created and modified with Gemini AI
+// CHQ: Created with Claude AI (Haiku) and modified with Gemini AI
 
 import { Router } from "express";
 import { pool } from "../db.js";
 import { AuthenticatedRequest, verifyToken } from "../middleware/auth.js";
 
+// CHQ: Gemini AI added boardSize prop to GameResultRequestBody
 interface GameResultRequestBody {
   result: "win" | "loss" | "draw";
   timeSeconds: number;
+  boardSize?: number; // e.g., 3, 4, 5, 6, 7
 }
 
 const router: Router = Router();
@@ -16,18 +18,13 @@ const router: Router = Router();
 // Save a score (requires authentication)
 router.post("/scores", verifyToken, async (req: AuthenticatedRequest, res) => {
   try {
-    const { result, timeSeconds } = req.body as GameResultRequestBody;
+    const { result, timeSeconds, boardSize = 3 } = req.body as GameResultRequestBody;
     const userId = req.user?.userId;
 
     if (!userId || !result || timeSeconds === undefined) {
       return res.status(400).json({ error: "Missing required match details." });
     }
 
-    // Ensure a users row exists (and stays current) before inserting into
-    // scores, since scores.user_id has a FOREIGN KEY constraint referencing
-    // users.id. Descope-authenticated users are never separately written to
-    // the users table anywhere else, so without this the insert below fails
-    // with ER_NO_REFERENCED_ROW_2 on every single request.
     await pool.query(
       `INSERT INTO users (id, name, email, created_at)
        VALUES (?, ?, ?, NOW())
@@ -36,16 +33,15 @@ router.post("/scores", verifyToken, async (req: AuthenticatedRequest, res) => {
     );
 
     await pool.query(
-      "INSERT INTO scores (user_id, result, time_seconds, created_at) VALUES (?, ?, ?, NOW())",
-      [userId, result, timeSeconds],
+      "INSERT INTO scores (user_id, result, time_seconds, board_size, created_at) VALUES (?, ?, ?, ?, NOW())",
+      [userId, result, timeSeconds, boardSize],
     );
 
     return res.status(200).json({
       message: "Game result recorded successfully",
-      data: { userId, result, timeSeconds },
+      data: { userId, result, timeSeconds, boardSize },
     });
   } catch (error) {
-    console.error("Error saving score:", error);
     return res.status(500).json({ error: "Failed to save game result" });
   }
 });
@@ -88,8 +84,11 @@ router.get("/scores/user/:userId", async (req: AuthenticatedRequest, res) => {
 });
 
 // Get leaderboard
+// CHQ: Gemini AI added leaderboard filtering by boardSize
 router.get("/leaderboard", async (req, res) => {
   try {
+    const boardSize = parseInt(req.query.boardSize as string, 10) || 3;
+
     const [rows]: any = await pool.query(
       `SELECT
         s.user_id as userId,
@@ -98,9 +97,11 @@ router.get("/leaderboard", async (req, res) => {
         COUNT(*) as totalGames
        FROM scores s
        LEFT JOIN users u ON u.id = s.user_id
+       WHERE s.board_size = ? AND s.result = 'win'
        GROUP BY s.user_id, u.name, u.email
        ORDER BY bestTime ASC
        LIMIT 10`,
+      [boardSize],
     );
 
     res.json(rows);
@@ -108,5 +109,4 @@ router.get("/leaderboard", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch leaderboard" });
   }
 });
-
 export default router;

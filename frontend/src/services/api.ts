@@ -51,11 +51,12 @@ const request = async (endpoint: string, options: RequestInit = {}) => {
 };
 
 // API Endpoints
-// frontend/src/services/api.ts
 
+// CHQ: Gemini AI added boardSize parameter
 export const saveScore = async (
   result: "win" | "loss" | "draw",
   timeSeconds: number,
+  boardSize: number = 3,
 ) => {
   const token = getAuthToken();
 
@@ -65,25 +66,19 @@ export const saveScore = async (
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({
-      result,
-      timeSeconds,
-    }),
+    body: JSON.stringify({ result, timeSeconds, boardSize }),
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to save score");
-  }
-
+  if (!response.ok) throw new Error("Failed to save score");
   return response.json();
 };
 
+// CHQ: Gemini AI added boardSize to leaderboard 
+export const getLeaderboard = async (boardSize: number = 3): Promise<LeaderboardEntry[]> => {
+  return request(`/api/scores/leaderboard?boardSize=${boardSize}`, { method: "GET" });
+};
 export const getUserStats = async (userId: string): Promise<UserStats> => {
   return request(`/api/scores/user/${userId}`, { method: "GET" });
-};
-
-export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
-  return request("/leaderboard", { method: "GET" });
 };
 
 export const verifyAuth = async (sessionJwt: string): Promise<any> => {

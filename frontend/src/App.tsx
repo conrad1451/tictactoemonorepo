@@ -1,147 +1,79 @@
 // frontend/src/App.ts
 
-// CHQ: Claude AI (Haiku) generated file
+// CHQ: Created with Claude AI (Haiku) and modified with Gemini AI
 
 import React, { useState, useEffect } from "react";
-import { useGameLogic } from "./hooks/useGameLogic";
+import { getLeaderboard } from "./services/api";
 import { GameBoard } from "./components/GameBoard";
-import { GameStatus } from "./components/GameStatus";
-import { AuthModal } from "./components/AuthModal";
-import { saveScore, setAuthToken } from "./services/api";
-import {
-  saveAuthUser,
-  getAuthUser,
-  clearAuth,
-  isAuthenticated,
-} from "./services/auth";
-import { AuthUser } from "./types";
-import "./App.css";
 
-const App: React.FC = () => {
-  const game = useGameLogic();
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [scoreSaved, setScoreSaved] = useState(false);
+import { LeaderboardEntry } from "./types";
 
-  // Load auth user from storage on mount
+export const App: React.FC = () => {
+  const [boardSize, setBoardSize] = useState<number>(3);
+  const [currentView, setCurrentView] = useState<"home" | "game">("home");
+  const [leaderboardSize, setLeaderboardSize] = useState<number>(3);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  
+  // Fetch leaderboard when size changes
   useEffect(() => {
-    const stored = getAuthUser();
-    if (stored) {
-      setAuthUser(stored);
-      setAuthToken(stored.sessionJwt);
-    }
-  }, []);
+    getLeaderboard(leaderboardSize).then(setLeaderboard);
+  }, [leaderboardSize]);
 
-  // Auto-save score/match result when game finishes and user is authenticated
-  useEffect(() => {
-    // Check if the game is over (winner is 'X', 'O', or 'draw')
-    const isGameOver = !!game.winner;
-
-    if (isGameOver && authUser && !scoreSaved) {
-      // Determine the match result string expected by backend
-      const result: "win" | "loss" | "draw" =
-        game.winner === "X" ? "win" : game.winner === "O" ? "loss" : "draw";
-
-      // Pass both result and elapsedTime to API service
-      saveScore(result, game.elapsedTime)
-        .then(() => {
-          setScoreSaved(true);
-        })
-        .catch((err) => {
-          console.error("Failed to save score:", err);
-        });
-    }
-  }, [game.winner, authUser, scoreSaved, game.elapsedTime]);
-
-  const handleAuthSuccess = (user: AuthUser) => {
-    setAuthUser(user);
-    saveAuthUser(user);
-    setAuthToken(user.sessionJwt);
-    setScoreSaved(true);
-
-    if (game.winner) {
-      const result: "win" | "loss" | "draw" =
-        game.winner === "X" ? "win" : game.winner === "O" ? "loss" : "draw";
-
-      saveScore(result, game.elapsedTime).catch((err) => {
-        console.error("Failed to save score:", err);
-      });
-    }
+  const handleStartGame = (size: number) => {
+    setBoardSize(size);
+    setCurrentView("game");
   };
 
-  const handleLogout = () => {
-    setAuthUser(null);
-    clearAuth();
-    setAuthToken(null);
-  };
-
-  const handleReset = () => {
-    game.resetGame();
-    setScoreSaved(false);
-  };
-
-  return (
-    <div className="app">
-      <header className="app-header">
-        <h1>🎮 Tic Tac Toe</h1>
-        <p>Beat the computer and save your time!</p>
-
-        {authUser ? (
-          <div className="user-info">
-            <span>Welcome, {authUser.name}!</span>
-            <button
-              className="btn btn-secondary btn-small"
-              onClick={handleLogout}
-            >
-              Sign Out
-            </button>
+  if (currentView === "home") {
+    return (
+      <div className="homepage">
+        <h1>Tic Tac Toe</h1>
+        
+        {/* Game Size Selection */}
+        <section className="mode-selection">
+          <h2>Select Game Size</h2>
+          <div className="button-group">
+            {[3, 4, 5, 6, 7].map((size) => (
+              <button key={size} onClick={() => handleStartGame(size)}>
+                {size}x{size} Mode
+              </button>
+            ))}
           </div>
-        ) : (
-          <button
-            className="btn btn-primary btn-small"
-            onClick={() => setShowAuthModal(true)}
-          >
-            Sign In
-          </button>
-        )}
-      </header>
+        </section>
 
-      <main className="app-main">
-        <div className="game-container">
-          <GameStatus
-            winner={game.winner}
-            isXNext={game.isXNext}
-            elapsedTime={game.elapsedTime}
-            onReset={handleReset}
-            onShowAuth={() => setShowAuthModal(true)}
-            isAuthenticated={!!authUser}
-          />
-
-          <GameBoard
-            board={game.board}
-            onCellClick={game.handlePlayerMove}
-            disabled={!!game.winner || !game.isXNext}
-          />
-
-          <div className="info-box">
-            <p>
-              You are <strong>X</strong>, Computer is <strong>O</strong>
-            </p>
-            <p>
-              Your move count: <strong>{game.moveCount}</strong>
-            </p>
+        {/* Dynamic Leaderboard by Size */}
+        <section className="leaderboard-section">
+          <h2>Leaderboard</h2>
+          <div className="leaderboard-tabs">
+            {[3, 4, 5, 6, 7].map((size) => (
+              <button
+                key={size}
+                className={leaderboardSize === size ? "active" : ""}
+                onClick={() => setLeaderboardSize(size)}
+              >
+                {size}x{size}
+              </button>
+            ))}
           </div>
-        </div>
-      </main>
 
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onAuthSuccess={handleAuthSuccess}
-        elapsedTime={game.elapsedTime}
+          <ul>
+            {leaderboard.map((entry: any, index) => (
+              <li key={entry.userId || index}>
+                #{index + 1} {entry.username} — {entry.bestTime}s ({entry.totalGames} games)
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+    );
+  }
+
+return (
+    <div className="game-view">
+      <GameBoard
+        boardSize={boardSize}
+        onBackToHome={() => setCurrentView("home")}
       />
     </div>
   );
 };
-
-export default App;
