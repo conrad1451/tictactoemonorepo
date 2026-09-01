@@ -27,9 +27,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onAuthSuccess,
   elapsedTime,
 }) => {
+
+  // CHQ: Gemini AI: ALL hooks must be declared at the top level unconditionally
   const [error, setError] = useState<string | null>(null);
   const { user: sdkUser } = useUser();
 
+  useEffect(() => {
+    if (isOpen) {
+      setError(null);
+    }
+  }, [isOpen]);
+
+  // CHQ: Gemini AI: Early return comes AFTER all hooks have been declared
   if (!isOpen) return null;
 
   const handleDescopeSuccess = (e: CustomEvent<DescopeSuccessDetail>) => {
@@ -70,12 +79,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
     setError("Authentication failed. Please try again.");
   };
-
-  useEffect(() => {
-    if (isOpen) {
-      setError(null);
-    }
-  }, [isOpen]);
+ 
 
   return (
     <div className="modal-overlay">
