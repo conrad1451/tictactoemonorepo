@@ -3,7 +3,7 @@
 // CHQ: Created with Claude AI (Haiku) and modified with Gemini AI
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { saveScore } from "../services/api";
+import { saveScore, getAuthToken } from "../services/api";
 
 export type BoardCell = "X" | "O" | null;
 
@@ -131,8 +131,15 @@ export const useGameLogic = (boardSize: number, _onBackToHome: () => void) => {
   const handleGameEnd = async (gameWinner: "X" | "O" | "draw", line: number[] | null) => {
     setWinner(gameWinner);
     setWinningLine(line);
-    setIsSubmitting(true);
 
+    // Prevent submitting score requests when no auth token is active
+    const token = getAuthToken();
+    if (!token) {
+      console.log("Guest session detected: Score saving skipped.");
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const gameOutcome =
         gameWinner === "draw" ? "draw" : gameWinner === "X" ? "win" : "loss";
@@ -161,7 +168,7 @@ export const useGameLogic = (boardSize: number, _onBackToHome: () => void) => {
             setIsXNext(true);
           }
         }
-      }, 400); // Small pause for realistic feel
+      }, 400);
 
       return () => clearTimeout(timer);
     }
@@ -179,7 +186,7 @@ export const useGameLogic = (boardSize: number, _onBackToHome: () => void) => {
     if (result.winner) {
       await handleGameEnd(result.winner, result.line);
     } else {
-      setIsXNext(false); // Triggers computer move effect
+      setIsXNext(false);
     }
   };
 
