@@ -140,6 +140,8 @@ export const App: React.FC = () => {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onAuthSuccess={handleAuthSuccess}
+        elapsedTime={0}
+        // elapsedTime?: number; // Made optional
       />
     </div>
   );
