@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Descope, getSessionToken, useUser} from "@descope/react-sdk";
+import { Descope, getSessionToken, useUser } from "@descope/react-sdk";
 import { AuthUser } from "../types";
 import "../styles/AuthModal.css";
 
@@ -10,9 +10,6 @@ interface AuthModalProps {
   elapsedTime: number;
 }
 
-// Shape of the CustomEvent Descope's <Descope /> component fires on
-// onSuccess. `sessionJwt` is included on the event in addition to `user`,
-// but we fall back to getSessionToken() in case a given flow/version omits it.
 interface DescopeSuccessDetail {
   user?: {
     userId?: string;
@@ -31,7 +28,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   elapsedTime,
 }) => {
   const [error, setError] = useState<string | null>(null);
-  const { user: sdkUser } = useUser(); // Pull user state directly from Descope context
+  const { user: sdkUser } = useUser();
 
   if (!isOpen) return null;
 
@@ -47,10 +44,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
+    // Safely extract sub if present on custom event detail object
+    const sub = "sub" in descopeUser ? (descopeUser as { sub?: string }).sub : undefined;
+
     const authUser: AuthUser = {
       userId:
         descopeUser.userId ??
-        descopeUser.sub ??
+        sub ??
         descopeUser.loginIds?.[0] ??
         "",
       email: descopeUser.email ?? "",
@@ -62,9 +62,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  // The Descope component's `onError` prop type is an intersection of the
-  // DOM's `onerror` handler shape and a CustomEvent handler, so we accept
-  // the loose `Event | string` shape and narrow to CustomEvent ourselves.
   const handleDescopeError: OnErrorEventHandlerNonNull = (event) => {
     if (event instanceof CustomEvent) {
       console.error("Descope auth error:", event.detail);
@@ -75,9 +72,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   useEffect(() => {
-  if (isOpen) {
-    setError(null);
-  }
+    if (isOpen) {
+      setError(null);
+    }
   }, [isOpen]);
 
   return (
