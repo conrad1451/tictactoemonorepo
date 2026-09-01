@@ -59,7 +59,7 @@ export const saveScore = async (
 ) => {
   const token = getAuthToken();
 
-  const response = await fetch(`${API_BASE_URL}/scores`, {
+  const response = await fetch(`${API_BASE_URL}/api/scores`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -79,7 +79,7 @@ export const saveScore = async (
 };
 
 export const getUserStats = async (userId: string): Promise<UserStats> => {
-  return request(`/scores/user/${userId}`, { method: "GET" });
+  return request(`/api/scores/user/${userId}`, { method: "GET" });
 };
 
 export const getLeaderboard = async (): Promise<LeaderboardEntry[]> => {
