@@ -1,4 +1,4 @@
-# Tic Tac Toe — Backend
+# Tic Tac Toe - Backend
 
 Express + TypeScript API for the Tic Tac Toe game. Verifies Descope session tokens and persists match results to a TiDB (MySQL-compatible) database.
 
