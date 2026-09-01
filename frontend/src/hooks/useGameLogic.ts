@@ -1,9 +1,13 @@
+// frontend/src/hooks/useGameLogic.ts
+
+// CHQ: Created with Claude AI (Haiku) and modified with Gemini AI
+
 import { useState, useCallback, useEffect, useRef } from "react";
 import { saveScore } from "../services/api";
 
 export type BoardCell = "X" | "O" | null;
 
-export const useGameLogic = (boardSize: number, onBackToHome: () => void) => {
+export const useGameLogic = (boardSize: number, _onBackToHome: () => void) => {
   const totalCells = boardSize * boardSize;
   const [board, setBoard] = useState<BoardCell[]>(() => Array(totalCells).fill(null));
   const [isXNext, setIsXNext] = useState<boolean>(true);
@@ -14,7 +18,6 @@ export const useGameLogic = (boardSize: number, onBackToHome: () => void) => {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Reset state when board size changes
   useEffect(() => {
     setBoard(Array(boardSize * boardSize).fill(null));
     setIsXNext(true);
@@ -23,7 +26,6 @@ export const useGameLogic = (boardSize: number, onBackToHome: () => void) => {
     setTimeSeconds(0);
   }, [boardSize]);
 
-  // Timer effect
   useEffect(() => {
     if (!winner) {
       timerRef.current = setInterval(() => {
@@ -38,7 +40,6 @@ export const useGameLogic = (boardSize: number, onBackToHome: () => void) => {
     };
   }, [winner]);
 
-  // Check rows, columns, and diagonals for dynamic N size
   const checkWinner = useCallback(
     (currentBoard: BoardCell[]): { winner: "X" | "O" | "draw" | null; line: number[] | null } => {
       // 1. Check Rows
@@ -65,7 +66,7 @@ export const useGameLogic = (boardSize: number, onBackToHome: () => void) => {
         }
       }
 
-      // 3. Check Main Diagonal (Top-Left to Bottom-Right)
+      // 3. Check Main Diagonal
       const mainDiagIndices: number[] = [];
       for (let i = 0; i < boardSize; i++) {
         mainDiagIndices.push(i * boardSize + i);
@@ -75,7 +76,7 @@ export const useGameLogic = (boardSize: number, onBackToHome: () => void) => {
         return { winner: mainFirst, line: mainDiagIndices };
       }
 
-      // 4. Check Anti Diagonal (Top-Right to Bottom-Left)
+      // 4. Check Anti Diagonal
       const antiDiagIndices: number[] = [];
       for (let i = 0; i < boardSize; i++) {
         antiDiagIndices.push(i * boardSize + (boardSize - 1 - i));
@@ -95,33 +96,90 @@ export const useGameLogic = (boardSize: number, onBackToHome: () => void) => {
     [boardSize]
   );
 
-  // Handle move click
+  const getComputerMove = useCallback(
+    (currentBoard: BoardCell[]): number => {
+      const availableIndices = currentBoard
+        .map((val, idx) => (val === null ? idx : null))
+        .filter((val): val is number => val !== null);
+
+      if (availableIndices.length === 0) return -1;
+
+      // Try to win
+      for (const idx of availableIndices) {
+        const testBoard = [...currentBoard];
+        testBoard[idx] = "O";
+        if (checkWinner(testBoard).winner === "O") return idx;
+      }
+
+      // Try to block player win
+      for (const idx of availableIndices) {
+        const testBoard = [...currentBoard];
+        testBoard[idx] = "X";
+        if (checkWinner(testBoard).winner === "X") return idx;
+      }
+
+      // Take center if available
+      const centerIndex = Math.floor(totalCells / 2);
+      if (availableIndices.includes(centerIndex)) return centerIndex;
+
+      // Choose random open cell
+      return availableIndices[Math.floor(Math.random() * availableIndices.length)];
+    },
+    [totalCells, checkWinner]
+  );
+
+  const handleGameEnd = async (gameWinner: "X" | "O" | "draw", line: number[] | null) => {
+    setWinner(gameWinner);
+    setWinningLine(line);
+    setIsSubmitting(true);
+
+    try {
+      const gameOutcome =
+        gameWinner === "draw" ? "draw" : gameWinner === "X" ? "win" : "loss";
+      await saveScore(gameOutcome, timeSeconds, boardSize);
+    } catch (err) {
+      console.error("Failed to auto-save match result:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Computer move turn listener
+  useEffect(() => {
+    if (!isXNext && !winner && !isSubmitting) {
+      const timer = setTimeout(() => {
+        const computerIndex = getComputerMove(board);
+        if (computerIndex !== -1) {
+          const newBoard = [...board];
+          newBoard[computerIndex] = "O";
+          setBoard(newBoard);
+
+          const result = checkWinner(newBoard);
+          if (result.winner) {
+            handleGameEnd(result.winner, result.line);
+          } else {
+            setIsXNext(true);
+          }
+        }
+      }, 400); // Small pause for realistic feel
+
+      return () => clearTimeout(timer);
+    }
+  }, [isXNext, winner, isSubmitting, board, getComputerMove, checkWinner]);
+
   const handleCellClick = async (index: number) => {
-    if (board[index] || winner || isSubmitting) return;
+    if (board[index] || winner || isSubmitting || !isXNext) return;
 
     const newBoard = [...board];
-    const currentPlayer = isXNext ? "X" : "O";
-    newBoard[index] = currentPlayer;
+    newBoard[index] = "X";
     setBoard(newBoard);
 
     const result = checkWinner(newBoard);
 
     if (result.winner) {
-      setWinner(result.winner);
-      setWinningLine(result.line);
-      setIsSubmitting(true);
-
-      try {
-        const gameOutcome =
-          result.winner === "draw" ? "draw" : result.winner === "X" ? "win" : "loss";
-        await saveScore(gameOutcome, timeSeconds, boardSize);
-      } catch (err) {
-        console.error("Failed to auto-save match result:", err);
-      } finally {
-        setIsSubmitting(false);
-      }
+      await handleGameEnd(result.winner, result.line);
     } else {
-      setIsXNext(!isXNext);
+      setIsXNext(false); // Triggers computer move effect
     }
   };
 
