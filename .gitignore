@@ -2,6 +2,8 @@ frontend/.env
 
 frontend/node_modules
  
+frontend/git-diffs/
+frontend/git-logs/
 
 backend/.env
 
