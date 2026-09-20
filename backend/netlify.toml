@@ -1,12 +1,12 @@
 [build]
-  publish = "public"
   functions = "netlify/functions"
-
-[dev]
-  functions = "netlify/functions"
-  framework = "#static"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
+  from = "/scores"
+  to = "/.netlify/functions/api/scores"
+  status = 200
+
+[[redirects]]
+  from = "/leaderboard"
+  to = "/.netlify/functions/api/leaderboard"
   status = 200
