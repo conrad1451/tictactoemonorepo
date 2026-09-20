@@ -2,17 +2,15 @@
 
 // CHQ: Gemini AI generated file
 
-import mysql from "mysql2/promise";
-import dotenv from "dotenv";
+import mongoose from 'mongoose';
 
-dotenv.config();
+let isConnected = false;
 
-export const pool = mysql.createPool({
-  uri: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: true,
-  },
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
+export const connectToDatabase = async (): Promise<void> => {
+  if (isConnected) {
+    return;
+  }
+
+  const db = await mongoose.connect(process.env.MONGODB_URI as string);
+  isConnected = db.connections[0].readyState === 1;
+};
