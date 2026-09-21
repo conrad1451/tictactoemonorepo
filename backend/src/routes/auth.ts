@@ -5,14 +5,15 @@
 import { Router, Request, Response } from "express";
 
 // 1. Declare and initialize the router instance
-const router: Router = Router();
+const router = Router();
+// const router: Router = Router();
 
 interface VerifyAuthRequestBody {
   sessionJwt?: string;
 }
 
 // 2. Attach routes to the router instance
-router.post("/auth/verify", (req: Request<{}, {}, VerifyAuthRequestBody>, res: Response) => {
+router.post("/verify", (req: Request<{}, {}, VerifyAuthRequestBody>, res: Response) => {
   try {
     const { sessionJwt } = req.body;
 
