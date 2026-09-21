@@ -7,11 +7,9 @@ import { connectToDatabase } from './db.js';
 import authRoutes from './routes/auth.js';
 import scoreRoutes from './routes/scores.js';
 
-// Cannot use namespace 'Express' as a type.
-// const app: Express = express();
+// 2. Configure CORS middleware to accept requests from your Vercel frontend
 const app = express();
 
-// 2. Configure CORS middleware to accept requests from your Vercel frontend
 app.use(
   cors({
     origin: 'https://tictactoebro.vercel.app',
@@ -21,10 +19,16 @@ app.use(
   })
 );
 
-// 3. Explicitly handle preflight OPTIONS requests across all routes
 app.options('*', cors());
-
 app.use(express.json());
+
+// Normalize Netlify function path prefix
+app.use((req, res, next) => {
+  if (req.url.startsWith('/.netlify/functions/api')) {
+    req.url = req.url.replace('/.netlify/functions/api', '');
+  }
+  next();
+});
 
 // DB Connection Middleware
 app.use(async (req, res, next) => {
