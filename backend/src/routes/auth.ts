@@ -1,13 +1,18 @@
 // backend/src/routes/auth.ts
 
-// CHQ: Claude AI (Haiku) generated file
+// CHQ: refactored by Gemini AI 
 
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 
+// 1. Declare and initialize the router instance
 const router: Router = Router();
 
-// Exchange Descope auth code for session
-router.post("/auth/verify", (req, res) => {
+interface VerifyAuthRequestBody {
+  sessionJwt?: string;
+}
+
+// 2. Attach routes to the router instance
+router.post("/auth/verify", (req: Request<{}, {}, VerifyAuthRequestBody>, res: Response) => {
   try {
     const { sessionJwt } = req.body;
 
@@ -15,11 +20,11 @@ router.post("/auth/verify", (req, res) => {
       return res.status(400).json({ error: "No session token provided" });
     }
 
-    // Token validation is handled by middleware
-    res.json({ message: "Session verified" });
+    return res.status(200).json({ message: "Session verified" });
   } catch (error) {
-    res.status(500).json({ error: "Auth verification failed" });
+    return res.status(500).json({ error: "Auth verification failed" });
   }
 });
 
+// 3. Export router as default
 export default router;

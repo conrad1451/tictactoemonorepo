@@ -8,3 +8,5 @@ frontend/git-logs/
 backend/.env
 
 backend/node_modules
+# Local Netlify folder
+.netlify

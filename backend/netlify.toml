@@ -1,0 +1,12 @@
+[build]
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/scores"
+  to = "/.netlify/functions/api/scores"
+  status = 200
+
+[[redirects]]
+  from = "/leaderboard"
+  to = "/.netlify/functions/api/leaderboard"
+  status = 200
