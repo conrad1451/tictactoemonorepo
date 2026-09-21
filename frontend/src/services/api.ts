@@ -7,8 +7,10 @@
 import { UserStats, LeaderboardEntry } from "../types";
 import { getAuthUser } from "./auth";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+// Ensure no trailing slash on base URL
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+).replace(/\/$/, "");
 
 // Local state to keep track of the JWT
 let authToken: string | null = null;
