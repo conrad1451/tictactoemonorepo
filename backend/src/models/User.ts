@@ -1,10 +1,10 @@
 // backend/src/models/User.ts
 
-// CHQ: Gemini AI generated file
+// CHQ: Gemini AI generated, edited with Claude AI (Sonnet)
 
 import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IUser extends Document {
+export interface IUser extends Omit<Document, '_id'> {
   _id: string; // Using your existing userId string (e.g. Descope/Auth ID)
   name?: string;
   email?: string;
