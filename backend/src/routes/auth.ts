@@ -5,8 +5,7 @@
 import { Router, Request, Response } from "express";
 
 // 1. Declare and initialize the router instance
-const router = Router();
-// const router: Router = Router();
+const router: Router = Router();
 
 interface VerifyAuthRequestBody {
   sessionJwt?: string;

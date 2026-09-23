@@ -1,14 +1,15 @@
 // backend/src/index.ts
 
 // CHQ: Gemini AI generated file
-import express from 'express';
+import express, { Express } from 'express';
 import cors from 'cors'; 
 import { connectToDatabase } from './db.js';
 import authRoutes from './routes/auth.js';
 import scoreRoutes from './routes/scores.js';
 
 // 2. Configure CORS middleware to accept requests from your Vercel frontend
-const app = express();
+// CHQ: Claude AI (Sonnet) explicitly annotated app's type
+const app: Express = express(); 
 
 app.use(
   cors({
