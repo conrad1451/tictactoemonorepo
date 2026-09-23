@@ -1,14 +1,15 @@
 // backend/src/index.ts
 
 // CHQ: Gemini AI generated file
-import express from 'express';
+import express, { Express } from 'express';
 import cors from 'cors'; 
 import { connectToDatabase } from './db.js';
 import authRoutes from './routes/auth.js';
 import scoreRoutes from './routes/scores.js';
 
 // 2. Configure CORS middleware to accept requests from your Vercel frontend
-const app = express();
+// CHQ: Claude AI (Sonnet) explicitly annotated app's type
+const app: Express = express(); 
 
 app.use(
   cors({
@@ -22,10 +23,10 @@ app.use(
 app.options('*', cors());
 app.use(express.json());
 
-// Normalize Netlify function path prefix
+// CHQ: Claude AI (Sonnet): fix Netlify function path prefix
 app.use((req, res, next) => {
-  if (req.url.startsWith('/.netlify/functions/api')) {
-    req.url = req.url.replace('/.netlify/functions/api', '');
+  if (req.url.startsWith('/api')) {
+    req.url = req.url.replace(/^\/api/, '') || '/';
   }
   next();
 });
@@ -42,6 +43,6 @@ app.use(async (req, res, next) => {
 
 // CHQ: Gemini AI: Mount at root
 app.use('/auth', authRoutes);
-app.use('/scores', scoreRoutes);
+app.use('/', scoreRoutes);
 
 export default app;
