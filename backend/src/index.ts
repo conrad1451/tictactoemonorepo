@@ -42,6 +42,6 @@ app.use(async (req, res, next) => {
 
 // CHQ: Gemini AI: Mount at root
 app.use('/auth', authRoutes);
-app.use('/scores', scoreRoutes);
+app.use('/', scoreRoutes);
 
 export default app;
