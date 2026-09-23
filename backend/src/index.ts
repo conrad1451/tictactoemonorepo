@@ -22,10 +22,10 @@ app.use(
 app.options('*', cors());
 app.use(express.json());
 
-// Normalize Netlify function path prefix
+// CHQ: Claude AI (Sonnet): fix Netlify function path prefix
 app.use((req, res, next) => {
-  if (req.url.startsWith('/.netlify/functions/api')) {
-    req.url = req.url.replace('/.netlify/functions/api', '');
+  if (req.url.startsWith('/api')) {
+    req.url = req.url.replace(/^\/api/, '') || '/';
   }
   next();
 });
