@@ -25,11 +25,11 @@ Create a `.env` file in this directory:
 
 ```bash
 VITE_DESCOPE_PROJECT_ID=your_descope_project_id
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:5000
 ```
 
 - `VITE_DESCOPE_PROJECT_ID` — Project ID from your Descope project (Project Settings → General). Must match the environment (Test/Production) your sign-in flow is deployed to.
-- `VITE_API_URL` — base URL of the backend API. Defaults to `http://localhost:5000/api` if unset.
+- `VITE_API_URL` — base URL of the backend API. Defaults to `http://localhost:5000` if unset.
 
 ## Running locally
 
