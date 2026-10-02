@@ -14,6 +14,7 @@ const app: Express = express();
 // CHQ: Claude AI: CORS: allow FRONTEND_URL plus local Vite dev ports 5173–5178
 const allowedOrigins: string[] = [
   process.env.FRONTEND_URL?.replace(/\/$/, ''),
+  process.env.FRONTEND_URL_2?.replace(/\/$/, ''),
   ...[5173, 5174, 5175, 5176, 5177, 5178].map((p) => `http://localhost:${p}`),
 ].filter((o): o is string => Boolean(o));
 
