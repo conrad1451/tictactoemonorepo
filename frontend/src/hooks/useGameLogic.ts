@@ -7,6 +7,10 @@ import { saveScore, getAuthToken } from "../services/api";
 
 export type BoardCell = "X" | "O" | null;
 
+// Difficulty: chance the computer makes its "smart" move vs a random one.
+// 1 = current unbeatable behavior, 0 = fully random. 0.5 is a good starting point.
+const SMART_MOVE_CHANCE = 0.5; // CHQ: Claude AI (Sonnet) introduced this
+
 export const useGameLogic = (boardSize: number, _onBackToHome: () => void) => {
   const totalCells = boardSize * boardSize;
   const [board, setBoard] = useState<BoardCell[]>(() => Array(totalCells).fill(null));
@@ -96,6 +100,7 @@ export const useGameLogic = (boardSize: number, _onBackToHome: () => void) => {
     [boardSize]
   );
 
+  // CHQ: Claude AI (Sonnet) added factor to make the computer not always play at peak.
   const getComputerMove = useCallback(
     (currentBoard: BoardCell[]): number => {
       const availableIndices = currentBoard
@@ -104,24 +109,28 @@ export const useGameLogic = (boardSize: number, _onBackToHome: () => void) => {
 
       if (availableIndices.length === 0) return -1;
 
-      // Try to win
-      for (const idx of availableIndices) {
-        const testBoard = [...currentBoard];
-        testBoard[idx] = "O";
-        if (checkWinner(testBoard).winner === "O") return idx;
+      const playSmart = Math.random() < SMART_MOVE_CHANCE;
+  
+      if (playSmart) {
+        // Try to win
+        for (const idx of availableIndices) {
+          const testBoard = [...currentBoard];
+          testBoard[idx] = "O";
+          if (checkWinner(testBoard).winner === "O") return idx;
+        }
+  
+        // Try to block player win
+        for (const idx of availableIndices) {
+          const testBoard = [...currentBoard];
+          testBoard[idx] = "X";
+          if (checkWinner(testBoard).winner === "X") return idx;
+        }
       }
-
-      // Try to block player win
-      for (const idx of availableIndices) {
-        const testBoard = [...currentBoard];
-        testBoard[idx] = "X";
-        if (checkWinner(testBoard).winner === "X") return idx;
-      }
-
-      // Take center if available
+  
+      // Take center if available (kept even off the "smart" path, mild bias only)
       const centerIndex = Math.floor(totalCells / 2);
-      if (availableIndices.includes(centerIndex)) return centerIndex;
-
+      if (playSmart && availableIndices.includes(centerIndex)) return centerIndex;
+  
       // Choose random open cell
       return availableIndices[Math.floor(Math.random() * availableIndices.length)];
     },
