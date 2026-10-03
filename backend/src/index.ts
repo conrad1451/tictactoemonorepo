@@ -7,7 +7,6 @@ import { connectToDatabase } from './db.js';
 import authRoutes from './routes/auth.js';
 import scoreRoutes from './routes/scores.js';
 
-// 2. Configure CORS middleware to accept requests from your Vercel frontend
 // CHQ: Claude AI (Sonnet) explicitly annotated app's type
 const app: Express = express(); 
 
@@ -18,16 +17,16 @@ const allowedOrigins: string[] = [
   ...[5173, 5174, 5175, 5176, 5177, 5178].map((p) => `http://localhost:${p}`),
 ].filter((o): o is string => Boolean(o));
 
+const allowedOriginPatterns: RegExp[] = [/^https:\/\/[a-z0-9-]+\.app\.github\.dev$/];
+
+export const isOriginAllowed = (origin: string | undefined): boolean =>
+  !origin ||
+  allowedOrigins.includes(origin) ||
+  allowedOriginPatterns.some((re) => re.test(origin));
+
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // No Origin header = curl/server-to-server, not a browser CORS request
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(null, false); // CHQ: Claude AI: omit CORS headers; browser blocks it
-      }
-    },
+    origin: (origin, callback) => callback(null, isOriginAllowed(origin)),
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
