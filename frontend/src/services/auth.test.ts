@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { AuthUser } from "../types";
 import { STORAGE_KEY, createAuthStore, isAuthUser } from "./auth";
 
+// CHQ: Claude AI (Sonnet) generated file
+
 const user: AuthUser = { userId: "u1", email: "a@b.c", name: "Ann", sessionJwt: "jwt" };
 
 /** Minimal in-memory Storage. */
