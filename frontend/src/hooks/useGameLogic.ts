@@ -1,158 +1,62 @@
 // frontend/src/hooks/useGameLogic.ts
 
-// CHQ: Created with Claude AI (Haiku) and modified with Gemini AI
+// CHQ: Created with Claude AI (Haiku) and modified 
+//      with Gemini AI and Claude AI (Sonent)
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { saveScore, getAuthToken } from "../services/api";
+import { BoardCell, Winner, checkWinner, createEmptyBoard } from "../game/rules";
+import { getComputerMove } from "../game/computerPlayer";
 
-export type BoardCell = "X" | "O" | null;
+export type { BoardCell } from "../game/rules";
 
-// Difficulty: chance the computer makes its "smart" move vs a random one.
-// 1 = current unbeatable behavior, 0 = fully random. 0.5 is a good starting point.
-const SMART_MOVE_CHANCE = 0.5; // CHQ: Claude AI (Sonnet) introduced this
+// 1 = unbeatable, 0 = fully random.
+const SMART_MOVE_CHANCE = 0.5;
 
 export const useGameLogic = (boardSize: number, _onBackToHome: () => void) => {
-  const totalCells = boardSize * boardSize;
-  const [board, setBoard] = useState<BoardCell[]>(() => Array(totalCells).fill(null));
+  const [board, setBoard] = useState<BoardCell[]>(() => createEmptyBoard(boardSize));
   const [isXNext, setIsXNext] = useState<boolean>(true);
-  const [winner, setWinner] = useState<"X" | "O" | "draw" | null>(null);
+  const [winner, setWinner] = useState<Winner>(null);
   const [winningLine, setWinningLine] = useState<number[] | null>(null);
   const [timeSeconds, setTimeSeconds] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    setBoard(Array(boardSize * boardSize).fill(null));
+  const resetGame = () => {
+    setBoard(createEmptyBoard(boardSize));
     setIsXNext(true);
     setWinner(null);
     setWinningLine(null);
     setTimeSeconds(0);
-  }, [boardSize]);
+  };
+
+  useEffect(resetGame, [boardSize]);
 
   useEffect(() => {
     if (!winner) {
-      timerRef.current = setInterval(() => {
-        setTimeSeconds((prev) => prev + 1);
-      }, 1000);
+      timerRef.current = setInterval(() => setTimeSeconds((prev) => prev + 1), 1000);
     } else if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [winner]);
 
-  const checkWinner = useCallback(
-    (currentBoard: BoardCell[]): { winner: "X" | "O" | "draw" | null; line: number[] | null } => {
-      // 1. Check Rows
-      for (let r = 0; r < boardSize; r++) {
-        const rowIndices: number[] = [];
-        for (let c = 0; c < boardSize; c++) {
-          rowIndices.push(r * boardSize + c);
-        }
-        const first = currentBoard[rowIndices[0]];
-        if (first && rowIndices.every((idx) => currentBoard[idx] === first)) {
-          return { winner: first, line: rowIndices };
-        }
-      }
-
-      // 2. Check Columns
-      for (let c = 0; c < boardSize; c++) {
-        const colIndices: number[] = [];
-        for (let r = 0; r < boardSize; r++) {
-          colIndices.push(r * boardSize + c);
-        }
-        const first = currentBoard[colIndices[0]];
-        if (first && colIndices.every((idx) => currentBoard[idx] === first)) {
-          return { winner: first, line: colIndices };
-        }
-      }
-
-      // 3. Check Main Diagonal
-      const mainDiagIndices: number[] = [];
-      for (let i = 0; i < boardSize; i++) {
-        mainDiagIndices.push(i * boardSize + i);
-      }
-      const mainFirst = currentBoard[mainDiagIndices[0]];
-      if (mainFirst && mainDiagIndices.every((idx) => currentBoard[idx] === mainFirst)) {
-        return { winner: mainFirst, line: mainDiagIndices };
-      }
-
-      // 4. Check Anti Diagonal
-      const antiDiagIndices: number[] = [];
-      for (let i = 0; i < boardSize; i++) {
-        antiDiagIndices.push(i * boardSize + (boardSize - 1 - i));
-      }
-      const antiFirst = currentBoard[antiDiagIndices[0]];
-      if (antiFirst && antiDiagIndices.every((idx) => currentBoard[idx] === antiFirst)) {
-        return { winner: antiFirst, line: antiDiagIndices };
-      }
-
-      // 5. Check Draw
-      if (currentBoard.every((cell) => cell !== null)) {
-        return { winner: "draw", line: null };
-      }
-
-      return { winner: null, line: null };
-    },
-    [boardSize]
-  );
-
-  // CHQ: Claude AI (Sonnet) added factor to make the computer not always play at peak.
-  const getComputerMove = useCallback(
-    (currentBoard: BoardCell[]): number => {
-      const availableIndices = currentBoard
-        .map((val, idx) => (val === null ? idx : null))
-        .filter((val): val is number => val !== null);
-
-      if (availableIndices.length === 0) return -1;
-
-      const playSmart = Math.random() < SMART_MOVE_CHANCE;
-  
-      if (playSmart) {
-        // Try to win
-        for (const idx of availableIndices) {
-          const testBoard = [...currentBoard];
-          testBoard[idx] = "O";
-          if (checkWinner(testBoard).winner === "O") return idx;
-        }
-  
-        // Try to block player win
-        for (const idx of availableIndices) {
-          const testBoard = [...currentBoard];
-          testBoard[idx] = "X";
-          if (checkWinner(testBoard).winner === "X") return idx;
-        }
-      }
-  
-      // Take center if available (kept even off the "smart" path, mild bias only)
-      const centerIndex = Math.floor(totalCells / 2);
-      if (playSmart && availableIndices.includes(centerIndex)) return centerIndex;
-  
-      // Choose random open cell
-      return availableIndices[Math.floor(Math.random() * availableIndices.length)];
-    },
-    [totalCells, checkWinner]
-  );
-
-  const handleGameEnd = async (gameWinner: "X" | "O" | "draw", line: number[] | null) => {
+  const handleGameEnd = async (gameWinner: Exclude<Winner, null>, line: number[] | null) => {
     setWinner(gameWinner);
     setWinningLine(line);
 
-    // Prevent submitting score requests when no auth token is active
-    const token = getAuthToken();
-    if (!token) {
+    if (!getAuthToken()) {
       console.log("Guest session detected: Score saving skipped.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const gameOutcome =
-        gameWinner === "draw" ? "draw" : gameWinner === "X" ? "win" : "loss";
-      await saveScore(gameOutcome, timeSeconds, boardSize);
+      const outcome = gameWinner === "draw" ? "draw" : gameWinner === "X" ? "win" : "loss";
+      await saveScore(outcome, timeSeconds, boardSize);
     } catch (err) {
       console.error("Failed to auto-save match result:", err);
     } finally {
@@ -164,13 +68,15 @@ export const useGameLogic = (boardSize: number, _onBackToHome: () => void) => {
   useEffect(() => {
     if (!isXNext && !winner && !isSubmitting) {
       const timer = setTimeout(() => {
-        const computerIndex = getComputerMove(board);
+        const computerIndex = getComputerMove(board, boardSize, {
+          smartMoveChance: SMART_MOVE_CHANCE,
+        });
         if (computerIndex !== -1) {
           const newBoard = [...board];
           newBoard[computerIndex] = "O";
           setBoard(newBoard);
 
-          const result = checkWinner(newBoard);
+          const result = checkWinner(newBoard, boardSize);
           if (result.winner) {
             handleGameEnd(result.winner, result.line);
           } else {
@@ -181,7 +87,7 @@ export const useGameLogic = (boardSize: number, _onBackToHome: () => void) => {
 
       return () => clearTimeout(timer);
     }
-  }, [isXNext, winner, isSubmitting, board, getComputerMove, checkWinner]);
+  }, [isXNext, winner, isSubmitting, board, boardSize]);
 
   const handleCellClick = async (index: number) => {
     if (board[index] || winner || isSubmitting || !isXNext) return;
@@ -190,21 +96,12 @@ export const useGameLogic = (boardSize: number, _onBackToHome: () => void) => {
     newBoard[index] = "X";
     setBoard(newBoard);
 
-    const result = checkWinner(newBoard);
-
+    const result = checkWinner(newBoard, boardSize);
     if (result.winner) {
       await handleGameEnd(result.winner, result.line);
     } else {
       setIsXNext(false);
     }
-  };
-
-  const resetGame = () => {
-    setBoard(Array(boardSize * boardSize).fill(null));
-    setIsXNext(true);
-    setWinner(null);
-    setWinningLine(null);
-    setTimeSeconds(0);
   };
 
   return {
