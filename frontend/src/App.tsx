@@ -3,7 +3,9 @@
 // CHQ: Created with Claude AI (Haiku) and modified with Gemini AI
 
 import React, { useState, useEffect } from "react";
-import { getLeaderboard, setAuthToken, saveScore } from "./services/api";
+// import { getLeaderboard, setAuthToken, saveScore } from "./services/api";
+import { getLeaderboard } from "./services/api";
+
 import { GameBoard } from "./components/GameBoard";
 import { AuthModal } from "./components/AuthModal";
 import {
@@ -27,7 +29,7 @@ export const App: React.FC = () => {
     const stored = getAuthUser();
     if (stored) {
       setAuthUser(stored);
-      setAuthToken(stored.sessionJwt);
+      // setAuthToken(stored.sessionJwt);
     }
   }, []);
 
@@ -46,13 +48,13 @@ export const App: React.FC = () => {
   const handleAuthSuccess = (user: AuthUser) => {
     setAuthUser(user);
     saveAuthUser(user);
-    setAuthToken(user.sessionJwt);
+    // setAuthToken(user.sessionJwt);
   };
 
   const handleLogout = () => {
     setAuthUser(null);
     clearAuth();
-    setAuthToken(null);
+    // setAuthToken(null);
   };
 
   return (
