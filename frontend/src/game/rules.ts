@@ -55,3 +55,6 @@ export const checkWinner = (board: BoardCell[], boardSize: number): WinResult =>
 
   return { winner: null, line: null };
 };
+
+/** Board sizes offered in the UI (mode selection and leaderboard tabs). */
+export const BOARD_SIZES = [3, 4, 5, 6, 7] as const;
