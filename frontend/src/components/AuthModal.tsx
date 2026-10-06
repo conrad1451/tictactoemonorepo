@@ -1,73 +1,42 @@
 import React, { useState, useEffect } from "react";
 import { Descope, getSessionToken, useUser } from "@descope/react-sdk";
 import { AuthUser } from "../types";
+import { DescopeSuccessDetail, mapDescopeSuccess } from "../services/descope";
 import "../styles/AuthModal.css";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAuthSuccess: (user: AuthUser) => void;
-  elapsedTime: number;
+  /** Return false if the session could not be saved; the modal then stays open with an error. */
+  onAuthSuccess: (user: AuthUser) => boolean;
+  /** Winning time to save. Omit when signing in from the header. */
+  elapsedTime?: number;
 }
 
-interface DescopeSuccessDetail {
-  user?: {
-    userId?: string;
-    sub?: string;
-    email?: string;
-    name?: string;
-    loginIds?: string[];
-  };
-  sessionJwt?: string;
-}
-
-export const AuthModal: React.FC<AuthModalProps> = ({
-  isOpen,
-  onClose,
-  onAuthSuccess,
-  elapsedTime,
-}) => {
-
-  // CHQ: Gemini AI: ALL hooks must be declared at the top level unconditionally
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuccess, elapsedTime }) => {
+  // All hooks must be declared unconditionally, before the early return.
   const [error, setError] = useState<string | null>(null);
   const { user: sdkUser } = useUser();
 
   useEffect(() => {
-    if (isOpen) {
-      setError(null);
-    }
+    if (isOpen) setError(null);
   }, [isOpen]);
 
-  // CHQ: Gemini AI: Early return comes AFTER all hooks have been declared
   if (!isOpen) return null;
 
   const handleDescopeSuccess = (e: CustomEvent<DescopeSuccessDetail>) => {
     setError(null);
 
-    const detail = e.detail ?? {};
-    const descopeUser = detail.user ?? sdkUser ?? {};
-    const sessionJwt = detail.sessionJwt ?? getSessionToken();
-
-    if (!sessionJwt) {
+    const authUser = mapDescopeSuccess(e.detail, sdkUser, getSessionToken());
+    if (!authUser) {
       setError("Authentication failed. Please try again.");
       return;
     }
 
-    // Safely extract sub if present on custom event detail object
-    const sub = "sub" in descopeUser ? (descopeUser as { sub?: string }).sub : undefined;
-
-    const authUser: AuthUser = {
-      userId:
-        descopeUser.userId ??
-        sub ??
-        descopeUser.loginIds?.[0] ??
-        "",
-      email: descopeUser.email ?? "",
-      name: descopeUser.name ?? descopeUser.email ?? "Player",
-      sessionJwt,
-    };
-
-    onAuthSuccess(authUser);
+    if (!onAuthSuccess(authUser)) {
+      setError("Signed in, but your session couldn't be saved. Check that browser storage is enabled.");
+      return;
+    }
     onClose();
   };
 
@@ -79,7 +48,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
     setError("Authentication failed. Please try again.");
   };
- 
+
+  const hasTime = elapsedTime !== undefined && elapsedTime > 0;
 
   return (
     <div className="modal-overlay">
@@ -88,23 +58,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ×
         </button>
 
-        <h2>Save Your Score</h2>
+        <h2>{hasTime ? "Save Your Score" : "Sign In"}</h2>
         <p>
-          Sign in to save your winning time: <strong>{elapsedTime}s</strong>
+          {hasTime ? (
+            <>
+              Sign in to save your winning time: <strong>{elapsedTime}s</strong>
+            </>
+          ) : (
+            "Sign in to save your scores and join the leaderboard."
+          )}
         </p>
 
         {error && <div className="error-message">{error}</div>}
 
-        <Descope
-          flowId="sign-up-or-in"
-          theme="light"
-          onSuccess={handleDescopeSuccess}
-          onError={handleDescopeError}
-        />
+        <Descope flowId="sign-up-or-in" theme="light" onSuccess={handleDescopeSuccess} onError={handleDescopeError} />
 
         <p className="modal-note">
-          Your score will be recorded and you can track your progress on the
-          leaderboard.
+          Your score will be recorded and you can track your progress on the leaderboard.
         </p>
       </div>
     </div>
