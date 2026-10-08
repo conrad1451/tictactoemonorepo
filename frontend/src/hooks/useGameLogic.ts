@@ -1,218 +1,91 @@
 // frontend/src/hooks/useGameLogic.ts
 
-// CHQ: Created with Claude AI (Haiku) and modified with Gemini AI
-
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { saveScore, getAuthToken } from "../services/api";
+import { BoardCell } from "../game/rules";
+import { getComputerMove } from "../game/computerPlayer";
+import { createInitialState, gameReducer } from "../game/gameReducer";
+import { useTimer } from "./useTimer";
 
-export type BoardCell = "X" | "O" | null;
+export type { BoardCell } from "../game/rules";
 
-// Difficulty: chance the computer makes its "smart" move vs a random one.
-// 1 = current unbeatable behavior, 0 = fully random. 0.5 is a good starting point.
-const SMART_MOVE_CHANCE = 0.5; // CHQ: Claude AI (Sonnet) introduced this
+// 1 = unbeatable, 0 = fully random.
+const SMART_MOVE_CHANCE = 0.5;
 
-export const useGameLogic = (boardSize: number, _onBackToHome: () => void) => {
-  const totalCells = boardSize * boardSize;
-  const [board, setBoard] = useState<BoardCell[]>(() => Array(totalCells).fill(null));
-  const [isXNext, setIsXNext] = useState<boolean>(true);
-  const [winner, setWinner] = useState<"X" | "O" | "draw" | null>(null);
-  const [winningLine, setWinningLine] = useState<number[] | null>(null);
-  const [timeSeconds, setTimeSeconds] = useState<number>(0);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+export interface GameLogicOptions {
+  saveScore: (result: "win" | "loss" | "draw", timeSeconds: number, boardSize: number) => Promise<unknown>;
+  getAuthToken: () => string | null;
+  /** Returns the cell index for the computer, or -1 if none. */
+  chooseComputerMove: (board: BoardCell[], boardSize: number) => number;
+  computerDelayMs: number;
+}
 
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+const defaultOptions: GameLogicOptions = {
+  saveScore,
+  getAuthToken,
+  chooseComputerMove: (board, boardSize) =>
+    getComputerMove(board, boardSize, { smartMoveChance: SMART_MOVE_CHANCE }),
+  computerDelayMs: 400,
+};
 
+export const useGameLogic = (boardSize: number, overrides: Partial<GameLogicOptions> = {}) => {
+  const options = { ...defaultOptions, ...overrides };
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
+  const [state, dispatch] = useReducer(gameReducer, boardSize, createInitialState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Start a fresh game when the board size changes (skip the initial mount).
+  const lastSize = useRef(boardSize);
   useEffect(() => {
-    setBoard(Array(boardSize * boardSize).fill(null));
-    setIsXNext(true);
-    setWinner(null);
-    setWinningLine(null);
-    setTimeSeconds(0);
+    if (lastSize.current !== boardSize) {
+      lastSize.current = boardSize;
+      dispatch({ type: "RESET", boardSize });
+    }
   }, [boardSize]);
 
+  useTimer(!state.winner, () => dispatch({ type: "TICK" }));
+
+  // Computer's turn.
   useEffect(() => {
-    if (!winner) {
-      timerRef.current = setInterval(() => {
-        setTimeSeconds((prev) => prev + 1);
-      }, 1000);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
+    if (state.isXNext || state.winner) return;
+    const timer = setTimeout(() => {
+      const index = optionsRef.current.chooseComputerMove(state.board, state.boardSize);
+      if (index !== -1) dispatch({ type: "COMPUTER_MOVE", index });
+    }, optionsRef.current.computerDelayMs);
+    return () => clearTimeout(timer);
+  }, [state.isXNext, state.winner, state.board, state.boardSize]);
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [winner]);
+  // Save the result once, when the game ends. The timer stops at that moment,
+  // so state.timeSeconds is the final time (no stale closure).
+  useEffect(() => {
+    if (!state.winner) return;
+    const { saveScore, getAuthToken } = optionsRef.current;
+    if (!getAuthToken()) return; // guest: nothing to save
 
-  const checkWinner = useCallback(
-    (currentBoard: BoardCell[]): { winner: "X" | "O" | "draw" | null; line: number[] | null } => {
-      // 1. Check Rows
-      for (let r = 0; r < boardSize; r++) {
-        const rowIndices: number[] = [];
-        for (let c = 0; c < boardSize; c++) {
-          rowIndices.push(r * boardSize + c);
-        }
-        const first = currentBoard[rowIndices[0]];
-        if (first && rowIndices.every((idx) => currentBoard[idx] === first)) {
-          return { winner: first, line: rowIndices };
-        }
-      }
-
-      // 2. Check Columns
-      for (let c = 0; c < boardSize; c++) {
-        const colIndices: number[] = [];
-        for (let r = 0; r < boardSize; r++) {
-          colIndices.push(r * boardSize + c);
-        }
-        const first = currentBoard[colIndices[0]];
-        if (first && colIndices.every((idx) => currentBoard[idx] === first)) {
-          return { winner: first, line: colIndices };
-        }
-      }
-
-      // 3. Check Main Diagonal
-      const mainDiagIndices: number[] = [];
-      for (let i = 0; i < boardSize; i++) {
-        mainDiagIndices.push(i * boardSize + i);
-      }
-      const mainFirst = currentBoard[mainDiagIndices[0]];
-      if (mainFirst && mainDiagIndices.every((idx) => currentBoard[idx] === mainFirst)) {
-        return { winner: mainFirst, line: mainDiagIndices };
-      }
-
-      // 4. Check Anti Diagonal
-      const antiDiagIndices: number[] = [];
-      for (let i = 0; i < boardSize; i++) {
-        antiDiagIndices.push(i * boardSize + (boardSize - 1 - i));
-      }
-      const antiFirst = currentBoard[antiDiagIndices[0]];
-      if (antiFirst && antiDiagIndices.every((idx) => currentBoard[idx] === antiFirst)) {
-        return { winner: antiFirst, line: antiDiagIndices };
-      }
-
-      // 5. Check Draw
-      if (currentBoard.every((cell) => cell !== null)) {
-        return { winner: "draw", line: null };
-      }
-
-      return { winner: null, line: null };
-    },
-    [boardSize]
-  );
-
-  // CHQ: Claude AI (Sonnet) added factor to make the computer not always play at peak.
-  const getComputerMove = useCallback(
-    (currentBoard: BoardCell[]): number => {
-      const availableIndices = currentBoard
-        .map((val, idx) => (val === null ? idx : null))
-        .filter((val): val is number => val !== null);
-
-      if (availableIndices.length === 0) return -1;
-
-      const playSmart = Math.random() < SMART_MOVE_CHANCE;
-  
-      if (playSmart) {
-        // Try to win
-        for (const idx of availableIndices) {
-          const testBoard = [...currentBoard];
-          testBoard[idx] = "O";
-          if (checkWinner(testBoard).winner === "O") return idx;
-        }
-  
-        // Try to block player win
-        for (const idx of availableIndices) {
-          const testBoard = [...currentBoard];
-          testBoard[idx] = "X";
-          if (checkWinner(testBoard).winner === "X") return idx;
-        }
-      }
-  
-      // Take center if available (kept even off the "smart" path, mild bias only)
-      const centerIndex = Math.floor(totalCells / 2);
-      if (playSmart && availableIndices.includes(centerIndex)) return centerIndex;
-  
-      // Choose random open cell
-      return availableIndices[Math.floor(Math.random() * availableIndices.length)];
-    },
-    [totalCells, checkWinner]
-  );
-
-  const handleGameEnd = async (gameWinner: "X" | "O" | "draw", line: number[] | null) => {
-    setWinner(gameWinner);
-    setWinningLine(line);
-
-    // Prevent submitting score requests when no auth token is active
-    const token = getAuthToken();
-    if (!token) {
-      console.log("Guest session detected: Score saving skipped.");
-      return;
-    }
-
+    const outcome = state.winner === "draw" ? "draw" : state.winner === "X" ? "win" : "loss";
     setIsSubmitting(true);
-    try {
-      const gameOutcome =
-        gameWinner === "draw" ? "draw" : gameWinner === "X" ? "win" : "loss";
-      await saveScore(gameOutcome, timeSeconds, boardSize);
-    } catch (err) {
-      console.error("Failed to auto-save match result:", err);
-    } finally {
-      setIsSubmitting(false);
-    }
+    saveScore(outcome, state.timeSeconds, state.boardSize)
+      .catch((err) => console.error("Failed to auto-save match result:", err))
+      .finally(() => setIsSubmitting(false));
+    // Intentionally keyed on winner only: run once per finished game.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.winner]);
+
+  const handleCellClick = (index: number) => {
+    if (isSubmitting) return;
+    dispatch({ type: "PLAYER_MOVE", index });
   };
 
-  // Computer move turn listener
-  useEffect(() => {
-    if (!isXNext && !winner && !isSubmitting) {
-      const timer = setTimeout(() => {
-        const computerIndex = getComputerMove(board);
-        if (computerIndex !== -1) {
-          const newBoard = [...board];
-          newBoard[computerIndex] = "O";
-          setBoard(newBoard);
-
-          const result = checkWinner(newBoard);
-          if (result.winner) {
-            handleGameEnd(result.winner, result.line);
-          } else {
-            setIsXNext(true);
-          }
-        }
-      }, 400);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isXNext, winner, isSubmitting, board, getComputerMove, checkWinner]);
-
-  const handleCellClick = async (index: number) => {
-    if (board[index] || winner || isSubmitting || !isXNext) return;
-
-    const newBoard = [...board];
-    newBoard[index] = "X";
-    setBoard(newBoard);
-
-    const result = checkWinner(newBoard);
-
-    if (result.winner) {
-      await handleGameEnd(result.winner, result.line);
-    } else {
-      setIsXNext(false);
-    }
-  };
-
-  const resetGame = () => {
-    setBoard(Array(boardSize * boardSize).fill(null));
-    setIsXNext(true);
-    setWinner(null);
-    setWinningLine(null);
-    setTimeSeconds(0);
-  };
+  const resetGame = () => dispatch({ type: "RESET", boardSize });
 
   return {
-    board,
-    isXNext,
-    winner,
-    winningLine,
-    timeSeconds,
+    board: state.board,
+    isXNext: state.isXNext,
+    winner: state.winner,
+    winningLine: state.winningLine,
+    timeSeconds: state.timeSeconds,
     isSubmitting,
     handleCellClick,
     resetGame,

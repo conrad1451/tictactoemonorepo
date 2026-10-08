@@ -17,7 +17,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ boardSize, onBackToHome })
     isSubmitting,
     handleCellClick,
     resetGame,
-  } = useGameLogic(boardSize, onBackToHome);
+  } = useGameLogic(boardSize);
 
   const formatTime = (totalSeconds: number) => {
     const mins = Math.floor(totalSeconds / 60);
