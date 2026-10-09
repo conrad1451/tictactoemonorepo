@@ -9,6 +9,7 @@ backend/.env
 
 backend/git-diffs/
 backend/git-logs/
+backend/dist/
 
 backend/node_modules
 # Local Netlify folder
