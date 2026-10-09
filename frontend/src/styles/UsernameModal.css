@@ -1,0 +1,29 @@
+/* frontend/src/styles/UsernameModal.css */
+/* Reuses .modal-overlay, .modal-content, .error-message and .modal-note from AuthModal.css */
+
+.username-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.username-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 16px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.username-input:focus {
+  border-color: #667eea;
+}
+
+.username-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
