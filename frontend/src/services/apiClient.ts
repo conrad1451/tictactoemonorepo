@@ -1,9 +1,7 @@
 // frontend/src/services/apiClient.ts
-
-// CHQ: Claude AI (Sonnet) generated file
 // Single request path for every backend call. No module-level state, no import.meta.env.
 
-import { LeaderboardEntry, UserStats } from "../types";
+import { LeaderboardEntry, UserProfile, UserStats } from "../types";
 
 export interface ApiClientOptions {
   /** API root including any prefix, e.g. "http://localhost:5000/api". */
@@ -18,7 +16,9 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly statusText: string,
-    public readonly path: string
+    public readonly path: string,
+    /** The `error` string from the server's JSON body, when there is one. Safe to show to users. */
+    public readonly serverMessage?: string
   ) {
     super(`API Error: ${status} ${statusText} (${path})`);
     this.name = "ApiError";
@@ -26,6 +26,16 @@ export class ApiError extends Error {
 }
 
 export type GameResult = "win" | "loss" | "draw";
+
+const readServerMessage = async (response: Response): Promise<string | undefined> => {
+  try {
+    const body: unknown = await response.json();
+    const message = (body as { error?: unknown } | null)?.error;
+    return typeof message === "string" ? message : undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 export const createApiClient = ({ baseUrl, getToken, fetchFn }: ApiClientOptions) => {
   const root = baseUrl.replace(/\/+$/, "");
@@ -43,7 +53,7 @@ export const createApiClient = ({ baseUrl, getToken, fetchFn }: ApiClientOptions
     const response = await doFetch(`${root}${path}`, { ...init, headers });
 
     if (!response.ok) {
-      throw new ApiError(response.status, response.statusText, path);
+      throw new ApiError(response.status, response.statusText, path, await readServerMessage(response));
     }
     if (response.status === 204) return undefined as T;
     return response.json() as Promise<T>;
@@ -66,6 +76,14 @@ export const createApiClient = ({ baseUrl, getToken, fetchFn }: ApiClientOptions
       request<unknown>("/auth/verify", {
         method: "POST",
         body: JSON.stringify({ sessionJwt }),
+      }),
+
+    getMe: () => request<UserProfile>("/me"),
+
+    setUsername: (username: string) =>
+      request<UserProfile>("/me/username", {
+        method: "PUT",
+        body: JSON.stringify({ username }),
       }),
   };
 };
