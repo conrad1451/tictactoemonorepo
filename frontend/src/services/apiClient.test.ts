@@ -1,8 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { ApiError, createApiClient } from "./apiClient";
 
-// CHQ: Claude AI (Sonnet) generated file
-
 const jsonResponse = (body: unknown, init: ResponseInit = {}) =>
   new Response(JSON.stringify(body), {
     status: 200,
@@ -93,6 +91,27 @@ describe("headers and body", () => {
   });
 });
 
+describe("profile endpoints", () => {
+  it("getMe GETs /me with the token", async () => {
+    const { client, call } = setup({ token: "abc", response: jsonResponse({ userId: "u1", username: null }) });
+    await expect(client.getMe()).resolves.toEqual({ userId: "u1", username: null });
+    const [url, init] = call();
+    expect(url).toBe("http://api.test/api/me");
+    expect(init.method).toBeUndefined();
+    expect(new Headers(init.headers).get("Authorization")).toBe("Bearer abc");
+  });
+
+  it("setUsername PUTs the username as JSON", async () => {
+    const { client, call } = setup({ token: "abc", response: jsonResponse({ userId: "u1", username: "Ann_T" }) });
+    await expect(client.setUsername("Ann_T")).resolves.toEqual({ userId: "u1", username: "Ann_T" });
+    const [url, init] = call();
+    expect(url).toBe("http://api.test/api/me/username");
+    expect(init.method).toBe("PUT");
+    expect(JSON.parse(init.body as string)).toEqual({ username: "Ann_T" });
+    expect(new Headers(init.headers).get("Content-Type")).toBe("application/json");
+  });
+});
+
 describe("responses", () => {
   it("returns parsed JSON", async () => {
     const entries = [{ userId: "1", username: "a", bestTime: 3, totalGames: 2 }];
@@ -112,5 +131,25 @@ describe("responses", () => {
   it("returns undefined for 204 responses", async () => {
     const { client } = setup({ response: new Response(null, { status: 204 }) });
     await expect(client.saveScore("win", 1, 3)).resolves.toBeUndefined();
+  });
+});
+
+describe("ApiError.serverMessage", () => {
+  it("carries the server's error string so it can be shown to the user", async () => {
+    const { client } = setup({ response: jsonResponse({ error: "That username is taken." }, { status: 409 }) });
+    const err = (await client.setUsername("Ann_T").catch((e) => e)) as ApiError;
+    expect(err.status).toBe(409);
+    expect(err.serverMessage).toBe("That username is taken.");
+  });
+
+  it.each([
+    ["a non-JSON body", new Response("<html>Not found</html>", { status: 404 })],
+    ["JSON without an error field", jsonResponse({ message: "x" }, { status: 400 })],
+    ["a non-string error field", jsonResponse({ error: { nested: true } }, { status: 400 })],
+  ])("is undefined for %s", async (_label, response) => {
+    const { client } = setup({ response });
+    const err = (await client.getMe().catch((e) => e)) as ApiError;
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.serverMessage).toBeUndefined();
   });
 });

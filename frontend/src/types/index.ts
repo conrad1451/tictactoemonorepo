@@ -33,3 +33,9 @@ export interface AuthUser {
   name: string;
   sessionJwt: string;
 }
+
+export interface UserProfile {
+  userId: string;
+  /** null until the player has chosen one */
+  username: string | null;
+}

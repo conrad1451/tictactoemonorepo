@@ -7,6 +7,7 @@ import { connectToDatabase } from './db.js';
 import { isOriginAllowed } from './cors.js';
 import authRoutes from './routes/auth.js';
 import scoreRoutes from './routes/scores.js';
+import meRoutes from './routes/me.js';
 
 // CHQ: Claude AI (Sonnet) explicitly annotated app's type
 const app: Express = express(); 
@@ -45,5 +46,6 @@ app.use(async (req, res, next) => {
 // CHQ: Gemini AI: Mount at root
 app.use('/auth', authRoutes);
 app.use('/', scoreRoutes);
+app.use('/', meRoutes);
 
 export default app;

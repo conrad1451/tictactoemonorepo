@@ -36,10 +36,11 @@ export const verifyToken = async (
     const authInfo = await descopeClient.validateSession(token);
     const claims = authInfo.token as Record<string, unknown>;
 
+    // Blank (not a made-up placeholder) when the token doesn't carry a claim.
     req.user = {
-      userId: (claims.sub as string) ?? "",
-      email: (claims.email as string) ?? "",
-      name: (claims.name as string) ?? "User",
+      userId: typeof claims.sub === "string" ? claims.sub : "",
+      email: typeof claims.email === "string" ? claims.email : "",
+      name: typeof claims.name === "string" ? claims.name : "",
     };
 
     next();
