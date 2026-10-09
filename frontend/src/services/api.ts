@@ -11,7 +11,7 @@ import { createApiClient } from "./apiClient";
 export const getAuthToken = (): string | null => getAuthUser()?.sessionJwt ?? null;
 
 export const api = createApiClient({
-  baseUrl: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseUrl: import.meta.env.VITE_API_URL_WITH_API_SUFFIX || "http://localhost:5000/api",
   getToken: getAuthToken,
 });
 
