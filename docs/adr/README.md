@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Decisions for the Tic Tac Toe monorepo (`frontend/` + `backend/`), reconstructed from the Git history of Aug 23 – Sep 23, 2026. Each record follows the ADR template in `ADR-000-template.md`.
+Decisions for the Tic Tac Toe monorepo (`frontend/` + `backend/`), reconstructed from the Git history of Aug 23 – Oct 9, 2026. Each record follows the ADR template in `ADR-000-template.md`.
 
 | # | Decision | Status | Date |
 |---|----------|--------|------|
@@ -15,7 +15,12 @@ Decisions for the Tic Tac Toe monorepo (`frontend/` + `backend/`), reconstructed
 | [009](ADR-009-netlify-functions-deployment.md) | Deploy the backend as a Netlify Function using serverless-http | Accepted | 2026-09-20 |
 | [010](ADR-010-cors-production-origin.md) | Restrict CORS to the production frontend origin | Superseded by ADR-012 | 2026-09-21 |
 | [011](ADR-011-strip-api-prefix-in-express.md) | Strip the `/api` prefix inside Express and mount routers at root | Accepted | 2026-09-23 |
-| [012](ADR-012-cors-env-allowlist.md) | Allow CORS from `FRONTEND_URL` and local Vite ports 5173–5178 | Accepted | 2026-09-23 |
+| [012](ADR-012-cors-env-allowlist.md) | Allow CORS from `FRONTEND_URL` and local Vite ports 5173–5178 | Superseded by ADR-013 | 2026-09-23 |
+| [013](ADR-013-cors-pattern-allowlist.md) | Extract CORS into `cors.ts` with a pattern allow-list, drop credentials mode | Accepted | 2026-10-08 |
+| [014](ADR-014-vitest-testing.md) | Adopt Vitest for unit tests on both frontend and backend | Accepted | 2026-10-03 |
+| [015](ADR-015-frontend-modularization.md) | Break the frontend into pure game logic, hooks, and a shared API client | Accepted | 2026-10-06 |
+| [016](ADR-016-username-public-leaderboard-identity.md) | Require a chosen username, and show only that on the leaderboard | Accepted | 2026-10-09 |
+| [017](ADR-017-remove-unused-backend-dependencies.md) | Remove mysql2, @types/mongoose, and tsx from the backend | Accepted | 2026-10-03 |
 
 ## Adding a new ADR
 Copy `ADR-000-template.md`, take the next number, and add a row above. If a new decision replaces an old one, set the old record's status to `Superseded by ADR-XX`.
