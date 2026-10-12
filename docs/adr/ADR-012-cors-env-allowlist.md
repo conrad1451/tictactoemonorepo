@@ -1,7 +1,7 @@
 # ADR-012: Allow CORS from `FRONTEND_URL` and local Vite ports 5173–5178
 
 ## Status
-- **Status:** Accepted
+- **Status:** Superseded by ADR-013
 - **Date:** 2026-09-23
 - **Authors:** Conrad Hansen-Quartey
 - **Deciders:** Conrad Hansen-Quartey
