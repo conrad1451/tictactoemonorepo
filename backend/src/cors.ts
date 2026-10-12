@@ -6,6 +6,7 @@ const exactOrigins = (): string[] =>
   [
     process.env.FRONTEND_URL?.replace(/\/$/, ''),
     process.env.FRONTEND_URL_2?.replace(/\/$/, ''),
+    process.env.FRONTEND_URL_3?.replace(/\/$/, ''),
     ...[5173, 5174, 5175, 5176, 5177, 5178].map((p) => `http://localhost:${p}`),
   ].filter((o): o is string => Boolean(o));
 
