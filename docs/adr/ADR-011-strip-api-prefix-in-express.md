@@ -26,6 +26,6 @@ We will strip a leading `/api` from `req.url` in a middleware that runs before r
 
 ### Negative (Cons / Trade-offs)
 - **Direct function URLs 404:** requests to `/.netlify/functions/api/...` are no longer stripped, so they miss the routers.
-- **Base URL must be the site origin:** the client trims a trailing slash from `VITE_API_URL` and adds `/api` itself. `VITE_API_URL` must therefore be the backend origin with no `/api` suffix. The frontend README still documents `http://localhost:5000/api`, which would produce `/api/api/...`.
-- **Inconsistent client helper:** `verifyAuth` in `frontend/src/services/api.ts` still calls `/auth/verify` without the `/api` prefix. Confirm it is unused, or update it.
+- **Base URL must be the site origin (resolved differently):** this originally required `VITE_API_URL` to be the backend origin with the client adding `/api` itself, while the README showed a value that already had `/api` on it. On 2026-10-03 the env var was renamed to `VITE_API_URL_WITH_API_SUFFIX` and the client stopped adding `/api` (see the apiClient unification in ADR-015); the variable's value must now include the suffix. The README was updated to match.
+- **Inconsistent client helper (resolved):** `verifyAuth` previously called `/auth/verify` without the `/api` prefix while every other call went through `/api/...`. Now that `createApiClient`'s `baseUrl` itself includes the `/api` suffix (ADR-015), a bare `/auth/verify` path resolves correctly again; `apiClient.test.ts` asserts it hits `/api/auth/verify`.
 - **Root-mounted catch-all:** `app.use('/', scoreRoutes)` means any future router mounted at `/` shares one namespace with the score routes.

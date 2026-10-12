@@ -33,5 +33,5 @@ We will use MongoDB Atlas through Mongoose 9 (`MONGODB_URI`).
 ### Negative (Cons / Trade-offs)
 - **Lost referential integrity:** `ref: 'User'` is not enforced. Score rows are not guaranteed to have a matching user, and the leaderboard relies on `$lookup` with `preserveNullAndEmptyArrays`.
 - **No data migration:** the history contains no script to move existing MySQL data. Old scores were either dropped or migrated outside the repo.
-- **Leftover dependencies:** `mysql2` is still in `package.json`, and `@types/mongoose` (a stub for an old major) is listed alongside Mongoose 9, which ships its own types. Both look removable.
+- **Leftover dependencies (resolved):** `mysql2` and `@types/mongoose` were left in `package.json` after this migration. Removed 2026-10-03; see ADR-017.
 - **Thinner docs:** the README rewrite (`0042632`) dropped the environment-variable, schema, and API-endpoint sections. `MONGODB_URI` is now documented only in code.

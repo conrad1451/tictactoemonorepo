@@ -29,5 +29,5 @@ We will write the backend as native ES modules under TypeScript's `NodeNext` res
 
 ### Negative (Cons / Trade-offs)
 - **Import ceremony:** `.js` extensions in `.ts` sources confuse newcomers and are easy to forget. Missing ones caused build errors in `ef85553` and `c655e29`.
-- **Tooling drift:** `ts-node` and `tsx` are both installed, and the `dev` script (`node --loader ts-node/esm`) predates the serverless move. It no longer starts a listener (see ADR-009).
+- **Tooling drift (partially resolved):** `ts-node` and `tsx` were both installed, and the `dev` script (`node --loader ts-node/esm`) predates the serverless move and no longer starts a listener (see ADR-009). `tsx` was removed 2026-10-03 as unused (ADR-017); `ts-node` and the stale `dev` script remain.
 - **Express 4 pinned:** upgrading to Express 5 would need a routing review, including the `app.options('*', ...)` wildcard in ADR-010.

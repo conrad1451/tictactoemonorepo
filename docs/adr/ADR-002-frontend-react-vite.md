@@ -27,4 +27,4 @@ We will build the frontend as a Vite + React 18 + TypeScript single-page app, de
 ### Negative (Cons / Trade-offs)
 - **Client-authoritative results:** win detection, the elapsed time, and the win/loss outcome are computed in the browser and sent to the API. A modified client can submit any time to the leaderboard. The backend only checks that the fields are present.
 - **Build-time config:** `VITE_*` values are baked into the bundle and are public. `VITE_API_URL` must be set correctly per environment (see ADR-011).
-- **Missing tooling:** the `lint` script references ESLint, but no ESLint dependency appears in the `package.json` changes in this log. No tests appear either.
+- **Missing tooling (partially resolved):** the `lint` script references ESLint, but no ESLint dependency appears in the `package.json` changes in this log — still true. Testing was added 2026-10-03; see ADR-014.
