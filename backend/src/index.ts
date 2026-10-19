@@ -44,6 +44,44 @@ app.use(async (req, res, next) => {
   }
 });
 
+// CHQ: API Documentation Endpoint
+app.get('/', (req, res) => {
+  res.json({
+    name: "Tic Tac Toe API",
+    description: "A multiplayer tic tac toe game backend",
+    version: "1.0.0",
+    endpoints: [
+      {
+        path: "/api/health",
+        method: "GET",
+        description: "Check if the database is reachable",
+        auth: false
+      },
+      {
+        path: "/api/leaderboard",
+        method: "GET",
+        description: "Fetch the top scores by board size",
+        auth: false,
+        queryParams: ["boardSize"]
+      },
+      {
+        path: "/api/me",
+        method: "GET",
+        description: "Get the current user's profile",
+        auth: true
+      },
+      {
+        path: "/api/scores",
+        method: "POST",
+        description: "Submit a game result",
+        auth: true
+      }
+    ],
+    liveUrl: "https://tictactoebronodeapi.netlify.app",
+    githubUrl: "https://github.com/yourname/repo"
+  });
+});
+
 // CHQ: Gemini AI: Mount at root
 app.use('/auth', authRoutes);
 app.use('/', healthRoutes);
