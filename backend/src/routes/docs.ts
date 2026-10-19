@@ -213,7 +213,7 @@ router.get('/', (req: Request, res: Response) => {
         </div>
         
         <div class="links">
-          <a href="https://github.com/conrad1451/tictactoemonorepo" class="link-btn">
+          <a href="https://github.com/conrad1451/tictactoemonorepo/tree/main/backend" class="link-btn">
             <span>📂</span> View on GitHub
           </a>
           <a href="https://conradhqportfolio.vercel.app" class="link-btn">
